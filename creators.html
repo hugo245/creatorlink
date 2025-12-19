@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CreatorLink | Hire Top Roblox Creators</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        tailwind.config = {
+            theme: { 
+                extend: { 
+                    colors: { 
+                        brand: '#FF0000', 
+                        brandDark: '#CC0000', 
+                        dark: '#0F172A' 
+                    }, 
+                    fontFamily: { 
+                        sans: ['Inter'] 
+                    } 
+                } 
+            }
+        }
+    </script>
+</head>
+<body class="bg-background flex flex-col min-h-screen text-slate-800">
+
+    <nav class="sticky top-0 z-50 bg-white/90 backdrop-blur border-b border-slate-200 shadow-sm">
+        <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+            <a href="creators.html" class="flex items-center gap-2 font-black text-xl text-dark">
+                <div class="bg-brand text-white w-9 h-9 flex items-center justify-center rounded-lg shadow-lg"><i class="fa-solid fa-link"></i></div>
+                Creator<span class="text-brand">Link</span>
+            </a>
+            <div class="flex gap-4 items-center font-medium text-sm text-slate-600">
+                <a id="nav-action-btn" href="login.html" class="bg-brand text-white px-6 py-2.5 rounded-full hover:bg-brandDark transition shadow-lg shadow-brand/20 font-bold">Log In</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="flex-grow max-w-7xl mx-auto px-6 py-12 w-full">
+        <div class="mb-12 text-center md:text-left">
+            <h1 class="text-4xl font-black text-dark mb-4">Find Creators</h1>
+            <p class="text-slate-500 text-lg max-w-2xl">Connect with verified influencers. Payments are secured via Ro-Pay Escrow.</p>
+        </div>
+
+        <div id="creators-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div class="col-span-full py-20 flex flex-col items-center justify-center text-slate-300">
+                <i class="fa-solid fa-circle-notch fa-spin text-4xl mb-4 text-brand"></i>
+                <p>Loading Creator Database...</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Detailed Checkout Modal -->
+    <div id="checkout-modal" class="hidden fixed inset-0 bg-dark/80 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-8 shadow-2xl relative">
+            <div class="absolute top-0 left-0 w-full h-2 bg-brand"></div>
+            <div class="flex justify-between items-start mb-6">
+                <h2 class="text-2xl font-black text-dark">Hire Creator</h2>
+                <button onclick="document.getElementById('checkout-modal').classList.add('hidden')" class="text-slate-400 hover:text-dark"><i class="fa-solid fa-times text-xl"></i></button>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-bold text-dark mb-1">Promotion Type</label>
+                    <select id="promotion-type-input" class="w-full border rounded-lg p-3 outline-none bg-white">
+                        <option>YouTube Video</option><option>TikTok</option><option>YouTube Short</option>
+                    </select>
+                </div>
+                <div><label class="block text-sm font-bold text-dark mb-1">Your Game Name</label><input id="game-name-input" class="w-full border rounded-lg p-3 outline-none"></div>
+                <div><label class="block text-sm font-bold text-dark mb-1">Brief</label><textarea id="promotion-brief-input" class="w-full border rounded-lg p-3 outline-none h-24"></textarea></div>
+                <div><label class="block text-sm font-bold text-dark mb-1">Game ID</label><input id="game-id-input" class="w-full border rounded-lg p-3 outline-none"></div>
+
+                <div class="bg-slate-50 p-4 rounded-xl border mt-4 flex justify-between items-center">
+                    <span id="checkout-creator-name" class="font-bold"></span>
+                    <span id="checkout-creator-rate" class="font-black text-xl text-brand"></span>
+                </div>
+            </div>
+
+            <button id="checkout-confirm-btn" class="w-full py-4 bg-brand text-white rounded-xl font-bold hover:bg-brandDark transition mt-6 text-lg shadow-xl">
+                <i class="fa-solid fa-lock"></i> Secure & Pay
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Replace with your Supabase project details
+        const supabaseUrl = 'https://bfbovswcgywmwvumunoc.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJmYm92c3djZ3l3bXd2dW11bm9jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3NzIzODIsImV4cCI6MjA4MDM0ODM4Mn0.Bp-IG9TkHSQIXfx1sg50fNvTsZph6-kRwQDexHY4aKs';
+        const { createClient } = supabase;
+        const supabaseClient = createClient(supabaseUrl, supabaseKey);
+
+        async function loadCreators() {
+            try {
+                const { data, error } = await supabaseClient.from('creators').select('*');
+                if (error) throw error;
+                const grid = document.getElementById('creators-grid');
+                
+                if (data.length === 0) return grid.innerHTML = '<div class="col-span-full text-center text-slate-500">No creators found.</div>';
+
+                grid.innerHTML = data.map(c => `
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col hover:shadow-lg hover:-translate-y-1 transition duration-300 group">
+                    <div class="flex items-start justify-between mb-4">
+                        <img src="${c.avatar_url ? supabaseClient.storage.from('avatars').getPublicUrl(c.avatar_url).data.publicUrl : 'https://placehold.co/80x80'}" class="w-16 h-16 rounded-full border-4 border-white shadow-md">
+                        <div class="text-xs font-bold bg-slate-100 px-3 py-1 rounded-full uppercase border">
+                            <i class="fa-brands ${c.creator_platform === 'youtube' ? 'fa-youtube text-red-500' : 'fa-tiktok'}"></i> ${c.creator_platform}
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-lg text-dark flex items-center gap-2">${c.username} <i class="fa-solid fa-circle-check text-blue-500 text-sm"></i></h3>
+                        <p class="text-sm text-slate-500 mb-6 mt-2 line-clamp-2 h-10">${c.creator_bio || 'No bio.'}</p>
+                    </div>
+                    <div class="mt-auto">
+                        <div class="bg-slate-50 p-3 rounded-lg border text-center mb-4">
+                            <div class="text-xs text-slate-400 uppercase font-bold">Rate</div>
+                            <div class="font-black text-brand text-xl">R$ ${c.creator_rate.toLocaleString()}</div>
+                        </div>
+                        <button onclick="requestPromo('${c.id}', '${c.username}', ${c.creator_rate})" class="w-full py-4 bg-dark text-white rounded-xl font-bold hover:bg-brand transition shadow-lg">Hire Now</button>
+                    </div>
+                </div>
+                `).join('');
+            } catch (err) { console.error(err); }
+        }
+
+        async function requestPromo(id, name, rate) {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) return window.location.href = 'login.html';
+            
+            document.getElementById('checkout-creator-name').innerText = name;
+            document.getElementById('checkout-creator-rate').innerText = 'R$ ' + rate.toLocaleString();
+            
+            const btn = document.getElementById('checkout-confirm-btn');
+            const newBtn = btn.cloneNode(true);
+            btn.parentNode.replaceChild(newBtn, btn);
+            newBtn.onclick = () => confirmHire(id, rate, newBtn);
+            
+            document.getElementById('checkout-modal').classList.remove('hidden');
+        }
+
+        async function confirmHire(id, rate, btn) {
+            btn.innerHTML = 'Processing...';
+            btn.disabled = true;
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                const user = session.user;
+
+                const { data, error } = await supabaseClient.from('promotions').insert({
+                    creator_id: id,
+                    user_id: user.id,
+                    amount: rate,
+                    game_name: document.getElementById('game-name-input').value,
+                    game_id: document.getElementById('game-id-input').value,
+                    promotion_type: document.getElementById('promotion-type-input').value,
+                    promotion_brief: document.getElementById('promotion-brief-input').value
+                });
+                if (error) throw error;
+                document.getElementById('checkout-modal').classList.add('hidden');
+                window.location.href = 'dashboard.html'; 
+            } catch (err) { alert(err.message); }
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-lock"></i> Secure & Pay';
+        }
+
+        async function checkLoggedIn() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (session) {
+                const btn = document.getElementById('nav-action-btn');
+                btn.href = 'dashboard.html';
+                btn.innerText = 'Dashboard';
+            }
+        }
+        checkLoggedIn();
+        loadCreators();
+    </script>
+</body>
+</html>

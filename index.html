@@ -1,17 +1,288 @@
-<title>Redirect Service</title>
-<p>Redirecting to temporary page in <span id="count">5</span> seconds...</p>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CreatorLink | The #1 Roblox Marketing Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: { extend: { colors: { brand: '#FF0000', brandDark: '#CC0000', dark: '#0F172A', darker: '#020617' }, fontFamily: { sans: ['Inter'] } } }
+        }
+    </script>
 
-<script>
-let seconds = 5;
-const countdown = document.getElementById('count');
+    <style>
+        body { background-color: #F8FAFC; scroll-behavior: smooth; }
+        .hero-pattern { background-image: radial-gradient(#333 1px, transparent 1px); background-size: 30px 30px; }
+        .fade-in { animation: fadeIn 0.8s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .glass { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .blob { position: absolute; filter: blur(40px); z-index: -1; opacity: 0.4; }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen font-sans text-slate-800">
 
-const interval = setInterval(() => {
-  seconds--;
-  countdown.textContent = seconds;
+    <nav class="sticky top-0 z-50 bg-white/90 backdrop-blur-lg border-b border-slate-200 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
+            <!-- ICON UPDATED -->
+            <a href="index.html" class="flex items-center gap-2 text-dark font-black text-2xl tracking-tighter group hover:opacity-80 transition">
+                <div class="bg-brand text-white w-10 h-10 flex items-center justify-center rounded-lg shadow-lg group-hover:-translate-y-1 transition-transform">
+                    <i class="fa-solid fa-link"></i>
+                </div>
+                Creator<span class="text-brand">Link</span>
+            </a>
+            
+            <div class="hidden md:flex gap-8 items-center font-semibold text-sm text-slate-600">
+                <a href="index.html" class="text-brand">Home</a>
+                <a href="creators.html" class="hover:text-brand transition">Browse Creators</a>
+                <a href="index.html#how-it-works" class="hover:text-brand transition">How it Works</a>
+                <a href="index.html#testimonials" class="hover:text-brand transition">Success Stories</a>
+                <a id="nav-login-link" href="login.html" class="text-slate-900 hover:text-brand">Log In</a>
+                <a id="nav-get-started-btn" href="login.html" class="bg-brand text-white px-6 py-3 rounded-full hover:bg-brandDark transition shadow-xl shadow-brand/20 transform hover:-translate-y-0.5">Get Started</a>
+            </div>
 
-  if (seconds <= 0) {
-    clearInterval(interval);
-    window.location.href = "https://creatorlink.page.gd";
-  }
-}, 1000);
-</script>
+            <div class="md:hidden flex items-center">
+                <button id="mobile-menu-button" class="text-dark focus:outline-none">
+                    <i class="fa-solid fa-bars text-2xl"></i>
+                </button>
+            </div>
+        </div>
+        
+        <div id="mobile-menu" class="hidden md:hidden bg-white/90 backdrop-blur-lg border-t border-slate-200 shadow-sm p-4 flex flex-col gap-4">
+             <a href="creators.html" class="font-bold">Browse Creators</a>
+             <a id="mobile-login-link" href="login.html" class="font-bold">Login</a>
+             <a id="mobile-get-started-btn" href="login.html" class="bg-brand text-white py-3 px-4 rounded-lg font-bold hover:bg-brandDark text-center">Get Started</a>
+        </div>
+    </nav>
+
+    <main class="flex-grow">
+        <section class="relative bg-darker text-white pt-32 pb-40 overflow-hidden hero-pattern">
+            <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-brand/20 blur-[120px] rounded-full pointer-events-none"></div>
+            
+            <div class="max-w-5xl mx-auto px-4 relative z-10 text-center fade-in">
+                <div class="inline-flex items-center gap-2 bg-white/10 border border-white/10 rounded-full px-4 py-1 text-xs font-bold uppercase tracking-wider text-brand mb-8">
+                    <span class="w-2 h-2 rounded-full bg-brand animate-pulse"></span> v3.0 | Now with TikTok
+                </div>
+                <h1 class="text-6xl md:text-8xl font-black tracking-tight mb-8 leading-tight">
+                    Make Your Game <br>
+                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-brand to-orange-500">Go Viral.</span>
+                </h1>
+                <p class="text-slate-400 text-xl max-w-2xl mx-auto mb-12 leading-relaxed">
+                    The only secure marketplace connecting Roblox developers with verified YouTubers and TikTokers. Escrow payments, guaranteed views, real growth.
+                </p>
+                <div class="flex flex-col sm:flex-row justify-center gap-4">
+                    <a href="creators.html" class="bg-brand text-white px-10 py-4 rounded-xl font-bold hover:bg-brandDark transition text-lg shadow-2xl shadow-brand/30 flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-magnifying-glass"></i> Browse Creators
+                    </a>
+                    <a id="hero-dashboard-link" href="login.html" class="glass text-white px-10 py-4 rounded-xl font-bold hover:bg-white/10 transition text-lg">
+                        Dashboard Login
+                    </a>
+                </div>
+                
+                <div class="mt-16 pt-8 border-t border-white/10 flex justify-center gap-12 grayscale opacity-50">
+                    <i class="fa-brands fa-youtube text-4xl"></i>
+                    <i class="fa-brands fa-tiktok text-4xl"></i>
+                    <i class="fa-brands fa-discord text-4xl"></i>
+                </div>
+            </div>
+        </section>
+
+        <div class="bg-white border-b border-slate-100 shadow-sm relative z-20 -mt-10 mx-4 md:mx-auto max-w-6xl rounded-2xl p-8 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+            <div><div class="text-4xl font-black text-dark">1.5M+</div><div class="text-slate-500 text-xs font-bold uppercase tracking-wide mt-2">Robux Paid</div></div>
+            <div><div class="text-4xl font-black text-dark">850+</div><div class="text-slate-500 text-xs font-bold uppercase tracking-wide mt-2">Verified Creators</div></div>
+            <div><div class="text-4xl font-black text-dark">300+</div><div class="text-slate-500 text-xs font-bold uppercase tracking-wide mt-2">Games Promoted</div></div>
+            <div><div class="text-4xl font-black text-dark">24/7</div><div class="text-slate-500 text-xs font-bold uppercase tracking-wide mt-2">Live Support</div></div>
+        </div>
+
+        <section id="testimonials" class="py-24 bg-white">
+            <div class="max-w-7xl mx-auto px-4">
+                <div class="text-center mb-16">
+                    <h2 class="text-4xl font-black text-dark mb-4">Success Stories</h2>
+                    <p class="text-slate-500 text-lg">See how games exploded in popularity using CreatorLink.</p>
+                </div>
+                <div class="grid md:grid-cols-3 gap-8">
+                    <div class="bg-slate-50 p-8 rounded-2xl border border-slate-200">
+                        <div class="flex items-center gap-4 mb-4">
+                            <div class="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center text-white font-bold text-xl">R</div>
+                            <div>
+                                <h4 class="font-bold text-dark">Race Clicker X</h4>
+                                <div class="text-xs text-slate-500">Developer: SpeedyDev</div>
+                            </div>
+                        </div>
+                        <p class="text-slate-600 mb-6">"I hired 3 TikTok creators for 15k Robux. My concurrent players went from 50 to 1,200 in a single weekend."</p>
+                        <div class="flex items-center gap-2 text-green-600 font-bold text-sm">
+                            <i class="fa-solid fa-arrow-trend-up"></i> +2,400% Growth
+                        </div>
+                    </div>
+                    <div class="bg-slate-50 p-8 rounded-2xl border border-slate-200">
+                        <div class="flex items-center gap-4 mb-4">
+                            <div class="w-12 h-12 bg-orange-500 rounded-lg flex items-center justify-center text-white font-bold text-xl">T</div>
+                            <div>
+                                <h4 class="font-bold text-dark">Tycoon Empire</h4>
+                                <div class="text-xs text-slate-500">Developer: BuildMaster</div>
+                            </div>
+                        </div>
+                        <p class="text-slate-600 mb-6">"The YouTube integration is seamless. Found a creator with 100k subs who perfectly matched my niche."</p>
+                        <div class="flex items-center gap-2 text-green-600 font-bold text-sm">
+                            <i class="fa-solid fa-arrow-trend-up"></i> 500k Views Generated
+                        </div>
+                    </div>
+                    <div class="bg-slate-50 p-8 rounded-2xl border border-slate-200">
+                        <div class="flex items-center gap-4 mb-4">
+                            <div class="w-12 h-12 bg-purple-500 rounded-lg flex items-center justify-center text-white font-bold text-xl">O</div>
+                            <div>
+                                <h4 class="font-bold text-dark">Obby Legends</h4>
+                                <div class="text-xs text-slate-500">Developer: JumpStudios</div>
+                            </div>
+                        </div>
+                        <p class="text-slate-600 mb-6">"CreatorLink's escrow system makes me feel safe. I don't pay until I see the video is live and valid."</p>
+                        <div class="flex items-center gap-2 text-green-600 font-bold text-sm">
+                            <i class="fa-solid fa-shield-halved"></i> 100% Safe Transactions
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="how-it-works" class="py-24 bg-slate-50 border-y border-slate-200">
+            <div class="max-w-7xl mx-auto px-4">
+                <div class="grid md:grid-cols-2 gap-12">
+                    <div class="bg-white rounded-3xl p-10 border border-slate-200 hover:shadow-xl transition duration-300">
+                        <div class="bg-blue-100 w-16 h-16 rounded-2xl flex items-center justify-center text-blue-600 text-3xl mb-6">
+                            <i class="fa-solid fa-code"></i>
+                        </div>
+                        <h3 class="text-2xl font-bold text-dark mb-4">For Game Developers</h3>
+                        <p class="text-slate-500 mb-6">Stop wasting Robux on ads that don't convert. Influencer marketing gives you social proof and loyal players.</p>
+                        <ul class="space-y-4 text-slate-600 mb-8">
+                            <li class="flex items-center gap-3"><i class="fa-solid fa-check text-blue-500"></i> Verified YouTubers & TikTokers</li>
+                            <li class="flex items-center gap-3"><i class="fa-solid fa-check text-blue-500"></i> Secure Escrow payments</li>
+                            <li class="flex items-center gap-3"><i class="fa-solid fa-check text-blue-500"></i> Dashboard Analytics</li>
+                        </ul>
+                        <a href="login.html" class="text-blue-600 font-bold hover:underline">Promote my Game &rarr;</a>
+                    </div>
+
+                    <div class="bg-dark rounded-3xl p-10 text-white hover:shadow-2xl hover:shadow-brand/20 transition duration-300 relative overflow-hidden">
+                        <div class="absolute top-0 right-0 w-64 h-64 bg-brand/10 rounded-full blur-3xl -mr-16 -mt-16"></div>
+                        <div class="bg-brand w-16 h-16 rounded-2xl flex items-center justify-center text-white text-3xl mb-6 relative z-10">
+                            <i class="fa-solid fa-video"></i>
+                        </div>
+                        <h3 class="text-2xl font-bold text-white mb-4 relative z-10">For Content Creators</h3>
+                        <p class="text-slate-300 mb-6">Turn your views into Robux. Connect with serious developers who value your audience.</p>
+                        <ul class="space-y-4 text-slate-300 mb-8 relative z-10">
+                            <li class="flex items-center gap-3"><i class="fa-solid fa-check text-brand"></i> YouTube & TikTok Supported</li>
+                            <li class="flex items-center gap-3"><i class="fa-solid fa-check text-brand"></i> Guaranteed Payouts</li>
+                            <li class="flex items-center gap-3"><i class="fa-solid fa-check text-brand"></i> Build Sponsorship History</li>
+                        </ul>
+                        <a href="login.html" class="text-brand font-bold hover:text-white transition relative z-10">Join as Creator &rarr;</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="py-24 bg-white">
+            <div class="max-w-3xl mx-auto px-4">
+                <h2 class="text-3xl font-black text-dark mb-12 text-center">Frequently Asked Questions</h2>
+                <div class="space-y-4">
+                    <details class="group bg-slate-50 p-6 rounded-xl cursor-pointer">
+                        <summary class="flex justify-between items-center font-bold text-dark list-none">Is this safe for my Robux? <span class="transition group-open:rotate-180"><i class="fa-solid fa-chevron-down"></i></span></summary>
+                        <p class="text-slate-600 mt-4 leading-relaxed">Yes. We use an **Escrow system**. You pay our Ro-Pay system, and we hold the funds. The Creator is only paid from our system once they mark the promotion as complete.</p>
+                    </details>
+                    <details class="group bg-slate-50 p-6 rounded-xl cursor-pointer">
+                        <summary class="flex justify-between items-center font-bold text-dark list-none">How do I verify as a creator? <span class="transition group-open:rotate-180"><i class="fa-solid fa-chevron-down"></i></span></summary>
+                        <p class="text-slate-600 mt-4 leading-relaxed">Log in to the dashboard and click "Become Creator". You'll submit an application with your channel links and stats. Our admin team reviews every application.</p>
+                    </details>
+                    <details class="group bg-slate-50 p-6 rounded-xl cursor-pointer">
+                        <summary class="flex justify-between items-center font-bold text-dark list-none">What if a creator scams me?</summary>
+                        <p class="text-slate-600 mt-4 leading-relaxed">Funds are held in **Escrow**. The creator isn't paid until they deliver the work. If there is a dispute, you can contact our support team. We can review the chat logs and promotion details to issue a refund if necessary.</p>
+                    </details>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-dark text-slate-400 py-16 border-t border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-12">
+            <div class="col-span-1 md:col-span-2">
+                <!-- ICON UPDATED -->
+                <a href="index.html#" class="flex items-center gap-2 text-white font-black text-2xl tracking-tighter mb-6">
+                    <div class="bg-brand text-white w-8 h-8 flex items-center justify-center rounded-lg">
+                        <i class="fa-solid fa-link"></i>
+                    </div>
+                    Creator<span class="text-brand">Link</span>
+                </a>
+                <p class="text-sm leading-relaxed max-w-sm">The #1 marketplace for Roblox game promotion.</p>
+            </div>
+            <div>
+                <h4 class="text-white font-bold mb-6">Company</h4>
+                <ul class="space-y-3 text-sm">
+                    <li><a href="index.html#" class="hover:text-brand transition">About Us</a></li>
+                    <li><a href="index.html#" class="hover:text-brand transition">Contact</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="text-white font-bold mb-6">Legal</h4>
+                <ul class="space-y-3 text-sm">
+                    <li><a href="index.html#" class="hover:text-brand transition">Terms</a></li>
+                    <li><a href="index.html#" class="hover:text-brand transition">Privacy</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="max-w-7xl mx-auto px-4 mt-16 pt-8 border-t border-slate-800 text-center text-xs">
+            &copy; 2025 CreatorLink.
+        </div>
+    </footer>
+    
+    <script>
+        // Replace with your Supabase project details
+        const supabaseUrl = 'https://bfbovswcgywmwvumunoc.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJmYm92c3djZ3l3bXd2dW11bm9jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3NzIzODIsImV4cCI6MjA4MDM0ODM4Mn0.Bp-IG9TkHSQIXfx1sg50fNvTsZph6-kRwQDexHY4aKs';
+        const { createClient } = supabase;
+        const supabaseClient = createClient(supabaseUrl, supabaseKey);
+
+        document.getElementById('mobile-menu-button').addEventListener('click', () => {
+            document.getElementById('mobile-menu').classList.toggle('hidden');
+        });
+        
+        // --- Change links to Dashboard if logged in ---
+        async function checkLoggedIn() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            const dashboardUrl = 'dashboard.html';
+
+            if (session) {
+                // Desktop/Tablet Nav Links
+                const navLogin = document.getElementById('nav-login-link');
+                if (navLogin) navLogin.style.display = 'none'; // Hide "Log In"
+                
+                const navGetStarted = document.getElementById('nav-get-started-btn');
+                if (navGetStarted) {
+                    navGetStarted.href = dashboardUrl;
+                    navGetStarted.innerText = 'Go To Dashboard';
+                }
+
+                // Hero Section Link
+                const heroDashboardLink = document.getElementById('hero-dashboard-link');
+                if (heroDashboardLink) {
+                    heroDashboardLink.href = dashboardUrl;
+                    heroDashboardLink.innerText = 'Go To Dashboard';
+                }
+                
+                // Mobile Menu Links
+                const mobileLogin = document.getElementById('mobile-login-link');
+                if (mobileLogin) mobileLogin.style.display = 'none'; // Hide "Login"
+                
+                const mobileGetStarted = document.getElementById('mobile-get-started-btn');
+                 if (mobileGetStarted) {
+                    mobileGetStarted.href = dashboardUrl;
+                    mobileGetStarted.innerText = 'Go To Dashboard';
+                }
+            }
+        }
+
+        checkLoggedIn();
+    </script>
+</body>
+</html>

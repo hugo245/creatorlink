@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CreatorLink | Dashboard</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- Load local config with `SUPABASE_URL` and `SUPABASE_ANON_KEY` -->
+<script src="config.js"></script>
+<script>
+tailwind.config = {
+theme: {
+extend: {
+colors: { brand: '#FF0000', brandDark: '#CC0000', dark: '#0F172A', background: '#F8FAFC' },
+fontFamily: { sans: ['Inter'] }
+}
+}
+}
+function formatRobux(amount) { return 'R$ ' + (amount || 0).toLocaleString('en-US'); }
+function formatDate(str) { return new Date(str).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }); }
+function extractGamepassId(url) {
+const match = url ? (url.match(/roblox\.com\/game-pass\/(\d+)/) || [null, url]) : [null, ""];
+return match[1] || "";
+}
+</script>
+<style>
+.fade-in { animation: fadeIn 0.3s ease-out; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.nav-link.active { background-color: theme('colors.brand'); color: black; box-shadow: 0 4px 10px rgba(255, 0, 0, 0.3); }
+.nav-link.active i { color: black; }
+</style>
+</head>
+<body class="min-h-screen flex flex-col text-slate-800 font-sans bg-background">
+<div id="messageBox" class="fixed top-4 right-4 z-[200] transition-all duration-300 transform translate-x-full opacity-0">
+<div id="messageText" class="bg-red-600 text-white px-4 py-2 rounded-lg shadow-xl font-semibold max-w-sm"></div>
+</div>
+<header class="w-full bg-white shadow-md sticky top-0 z-50">
+<div class="max-w-7xl mx-auto p-4 flex justify-between items-center">
+<a href="dashboard.html" class="flex items-center space-x-2">
+<i class="fas fa-link text-brand text-2xl"></i>
+<span class="text-dark text-xl font-extrabold hidden sm:inline">CreatorLink Dashboard</span>
+</a>
+<div class="flex items-center space-x-4">
+<div class="relative">
+<button id="notificationButton" class="text-slate-500 hover:text-brand transition-colors text-lg relative">
+<i class="fas fa-bell"></i>
+<span id="notificationCount" class="absolute -top-2 -right-2 bg-brand text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white hidden">0</span>
+</button>
+<div id="notificationPanel" class="hidden absolute top-full right-0 mt-3 w-80 bg-white rounded-2xl shadow-2xl border border-slate-100 z-50 overflow-hidden">
+<div class="p-3 border-b border-slate-100 font-bold bg-slate-50">Notifications</div>
+<div id="notificationList" class="max-h-64 overflow-y-auto"></div>
+<button id="markAllReadButton" class="w-full p-2 text-xs text-brand font-bold hover:bg-slate-50 border-t">Mark All Read</button>
+</div>
+</div>
+<div class="text-sm text-right">
+<div id="headerUsername" class="font-bold">...</div>
+<div id="headerBalance" class="text-xs text-slate-500">R$ 0</div>
+</div>
+<img id="headerAvatar" src="" class="w-10 h-10 rounded-full bg-slate-200 object-cover border-2 border-slate-100">
+<button id="logoutButton" class="text-slate-400 hover:text-red-500"><i class="fas fa-sign-out-alt"></i></button>
+</div>
+</div>
+</header>
+<div class="flex flex-1 max-w-7xl mx-auto w-full p-4 sm:p-6 gap-6">
+<nav class="hidden md:flex flex-col w-64 space-y-2 bg-white rounded-2xl shadow-lg h-fit sticky top-24 p-4">
+<div class="text-xs font-bold text-slate-400 uppercase px-3 mb-2">Menu</div>
+<a href="#dashboard" class="nav-link flex items-center space-x-3 p-3 rounded-xl text-slate-600 hover:bg-red-50 hover:text-brand transition" data-view="dashboard">
+<i class="fas fa-chart-line w-5 text-center"></i><span>Dashboard</span>
+</a>
+<a href="#promotions" class="nav-link flex items-center space-x-3 p-3 rounded-xl text-slate-600 hover:bg-red-50 hover:text-brand transition" data-view="promotions">
+<i class="fas fa-bullhorn w-5 text-center"></i><span>Purchases</span>
+</a>
+<a href="#chat" class="nav-link flex items-center space-x-3 p-3 rounded-xl text-slate-600 hover:bg-red-50 hover:text-brand transition" data-view="chat">
+<i class="fas fa-comments w-5 text-center"></i><span>Chat</span>
+</a>
+<div id="creator-nav-links" class="pt-4 border-t border-slate-100 mt-2">
+<div class="text-xs font-bold text-slate-400 uppercase px-3 mb-2">Creator</div>
+<a href="#listing" class="nav-link flex items-center space-x-3 p-3 rounded-xl text-slate-600 hover:bg-red-50 hover:text-brand" data-view="listing">
+<i class="fas fa-palette w-5 text-center"></i><span>Edit Listing</span>
+</a>
+<a href="#funds" class="nav-link flex items-center space-x-3 p-3 rounded-xl text-slate-600 hover:bg-red-50 hover:text-brand" data-view="funds">
+<i class="fas fa-wallet w-5 text-center"></i><span>Funds</span>
+</a>
+</div>
+<a href="creators.html" class="mt-4 flex items-center space-x-3 p-3 rounded-xl text-blue-600 bg-blue-50 hover:bg-blue-100 font-bold">
+<i class="fas fa-store w-5 text-center"></i><span>Marketplace</span>
+</a>
+</nav>
+<main class="flex-1 min-w-0">
+<div id="dashboardView" class="view" style="display:none;">
+<h1 class="text-3xl font-black mb-6 text-dark">Dashboard</h1>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+<div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+<div class="text-sm text-slate-500 font-bold uppercase">Balance</div>
+<div class="text-3xl font-black text-dark mt-1" id="totalBalance">R$ 0</div>
+</div>
+<div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+<div class="text-sm text-slate-500 font-bold uppercase">Active Purchases</div>
+<div class="text-3xl font-black text-brand mt-1" id="activePromotionsCount">0</div>
+</div>
+<div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+<div class="text-sm text-slate-500 font-bold uppercase">Completed</div>
+<div class="text-3xl font-black text-green-500 mt-1" id="totalCompleted">0</div>
+</div>
+</div>
+<div id="become-creator-panel" class="hidden bg-dark text-white p-8 rounded-2xl shadow-xl mb-8 relative overflow-hidden">
+<div class="relative z-10">
+<h2 class="text-2xl font-bold mb-2">Become a Creator</h2>
+<p class="text-slate-300 mb-4 max-w-lg">Earn Robux by offering services in the marketplace.</p>
+<button onclick="openModal('creatorApplicationModal')" id="becomeCreatorButton" class="bg-brand hover:bg-brandDark px-6 py-2 rounded-lg font-bold transition">Apply Now</button>
+</div>
+<i class="fas fa-star absolute -right-6 -bottom-6 text-9xl text-white/5"></i>
+</div>
+<h2 class="text-xl font-bold mb-4">Recent Activity</h2>
+<div id="recentActivityList" class="space-y-3"></div>
+</div>
+<div id="promotionsView" class="view" style="display:none;">
+<h1 class="text-3xl font-black mb-6">My Purchases</h1>
+<div id="promotionsList" class="space-y-4"></div>
+</div>
+<div id="chatView" class="view" style="display:none;">
+<div class="flex h-[75vh] bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
+<div class="w-72 border-r border-slate-100 bg-slate-50 flex flex-col">
+<div class="p-4 font-bold border-b border-slate-200">Conversations</div>
+<div id="chatPromoList" class="flex-1 overflow-y-auto p-2 space-y-1"></div>
+</div>
+<div class="flex-1 flex flex-col bg-white">
+<div id="chatHeader" class="p-4 border-b border-slate-100 flex items-center justify-between bg-white z-10 hidden">
+<div class="flex items-center gap-3">
+<img id="chatPartnerAvatar" class="w-10 h-10 rounded-full border">
+<div>
+<div id="chatPartnerUsername" class="font-bold text-dark leading-tight"></div>
+<div id="chatPromoTitle" class="text-xs text-slate-500"></div>
+</div>
+</div>
+<div id="chatExpiry" class="text-xs text-red-500 font-bold hidden">Chat deletes in 3 days</div>
+</div>
+<div id="chatBox" class="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50">
+<div class="text-center text-slate-400 mt-10">Select a conversation</div>
+</div>
+<div id="chatInputArea" class="p-3 border-t border-slate-200 bg-white hidden">
+<form id="chatForm" class="flex items-center gap-2">
+<label class="cursor-pointer text-slate-400 hover:text-brand p-2 transition">
+<i class="fas fa-paperclip text-xl"></i>
+<input type="file" id="chatFileInput" class="hidden" accept="image/*,video/*">
+</label>
+<input type="text" id="chatMessageInput" placeholder="Type a message..." class="flex-1 bg-slate-100 border-0 rounded-full px-4 py-3 focus:ring-2 focus:ring-brand outline-none">
+<button type="submit" class="bg-brand text-white w-10 h-10 rounded-full hover:bg-brandDark flex items-center justify-center transition shadow-lg">
+<i class="fas fa-paper-plane"></i>
+</button>
+</form>
+<div id="filePreview" class="text-xs text-brand font-bold mt-2 hidden">File selected: <span id="fileName"></span></div>
+</div>
+</div>
+</div>
+</div>
+<div id="listingView" class="view" style="display:none;">
+<h1 class="text-3xl font-black mb-6">Edit Listing</h1>
+<div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 max-w-2xl">
+<form id="listingForm" class="space-y-4">
+<input type="hidden" id="listingId">
+<div>
+<label class="block font-bold text-sm mb-1">Title</label>
+<input id="listingTitle" type="text" class="w-full border rounded-lg p-3 outline-none" placeholder="e.g., 60-Second TikTok Game Dev Promo">
+</div>
+<div>
+<label class="block font-bold text-sm mb-1">Description</label>
+<textarea id="listingBio" class="w-full border rounded-lg p-3 text-sm focus:border-brand outline-none" rows="3"></textarea>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div>
+<label class="block font-bold text-sm mb-1">Rate (R$)</label>
+<input id="listingRate" type="number" class="w-full border rounded-lg p-3 outline-none">
+</div>
+<div>
+<label class="block font-bold text-sm mb-1">Platform</label>
+<select id="listingPlatform" class="w-full border rounded-lg p-3 bg-white outline-none">
+<option value="youtube">YouTube</option>
+<option value="tiktok">TikTok</option>
+</select>
+</div>
+</div>
+<button class="w-full bg-brand text-white font-bold py-3 rounded-xl hover:bg-brandDark mt-4">Save Listing</button>
+</form>
+</div>
+</div>
+<div id="fundsView" class="view" style="display:none;">
+<h1 class="text-3xl font-black mb-6">Funds</h1>
+<div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 mb-8">
+<div class="flex justify-between items-center mb-6">
+<span class="text-xl font-bold">Available Balance</span>
+<span class="text-4xl font-black text-brand" id="fundsCurrentBalance">R$ 0</span>
+</div>
+<form id="payoutForm" class="flex gap-4">
+<input name="amount" type="number" placeholder="Amount (Min 100)" class="flex-1 border rounded-xl p-3 outline-none">
+<input name="gamepass_url" placeholder="Your Gamepass Link" class="flex-[2] border rounded-xl p-3 outline-none">
+<button class="bg-green-600 text-white font-bold px-6 rounded-xl hover:bg-green-700">Withdraw</button>
+</form>
+</div>
+<h3 class="font-bold mb-4">History</h3>
+<div id="payoutHistoryList" class="space-y-2"></div>
+</div>
+<div id="creatorApplicationModal" class="fixed inset-0 bg-dark/80 hidden z-[100] items-center justify-center p-4">
+<div class="bg-white p-8 rounded-2xl max-w-lg w-full">
+<h3 class="text-2xl font-bold mb-4">Apply to be a Creator</h3>
+<form id="creatorApplicationForm" class="space-y-4">
+<input id="app-youtube" placeholder="YouTube/TikTok URL" class="w-full border p-3 rounded-lg">
+<input id="app-views" type="number" placeholder="Monthly Unique Views/Impressions (Estimate)" class="w-full border p-3 rounded-lg">
+<input id="app-spending" type="number" placeholder="Monthly Ad/Promo Spending (R$)" class="w-full border p-3 rounded-lg">
+<div class="flex gap-2">
+<button type="button" onclick="openModal('')" class="flex-1 py-3 text-slate-500 font-bold">Cancel</button>
+<button class="flex-1 bg-brand text-white py-3 rounded-lg font-bold">Submit</button>
+</div>
+</form>
+</div>
+</div>
+</main>
+</div>
+<script>
+// Prefer values from `test/config.js`. If not provided, fall back to existing values.
+const supabaseUrl = window.SUPABASE_URL || 'https://bfbovswcgywmwvumunoc.supabase.co';
+const supabaseKey = window.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJmYm92c3djZ3l3bXd2dW11bm9jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3NzIzODIsImV4cCI6MjA4MDM0ODM4Mn0.Bp-IG9TkHSQIXfx1sg50fNvTsZph6-kRwQDexHY4aKs';
+const { createClient } = supabase;
+const supabaseClient = createClient(supabaseUrl, supabaseKey);
+let STATE = { user: null, notifications: [], allPurchases: [] };
+let CHAT_POLL, NOTIF_POLL;
+
+function showMessage(text, isError = true) {
+const box = document.getElementById('messageBox');
+const textEl = document.getElementById('messageText');
+textEl.innerText = text;
+textEl.classList.toggle('bg-red-600', isError);
+textEl.classList.toggle('bg-green-600', !isError);
+box.classList.remove('translate-x-full', 'opacity-0');
+box.classList.add('translate-x-0', 'opacity-100', 'fade-in');
+setTimeout(() => {
+box.classList.remove('translate-x-0', 'opacity-100');
+box.classList.add('translate-x-full', 'opacity-0');
+}, 5000);
+}
+
+function openModal(id) {
+document.getElementById('creatorApplicationModal').style.display = id ? 'flex' : 'none';
+}
+
+function showView(viewId) {
+document.querySelectorAll('.view').forEach(v => v.style.display = 'none');
+document.getElementById(viewId + 'View').style.display = 'block';
+document.querySelectorAll('.nav-link').forEach(link => {
+link.classList.remove('active');
+if (link.getAttribute('data-view') === viewId) {
+link.classList.add('active');
+}
+});
+if (viewId === 'dashboard') loadDashboardData();
+if (viewId === 'promotions') loadPromotions();
+if (viewId === 'funds') loadFundsData();
+if (viewId === 'listing') loadListingData();
+if (viewId === 'chat') loadChatList();
+}
+
+function handleHashChange() {
+const hash = window.location.hash.substr(1);
+const viewId = hash || 'dashboard';
+showView(viewId);
+}
+
+async function loadUserProfile() {
+try {
+const { data: { session } } = await supabaseClient.auth.getSession();
+if (!session) {
+window.location.href = 'login.html';
+return;
+}
+const { data: userData, error: userError } = await supabaseClient.auth.getUser();
+if (userError) throw userError;
+
+const { data: profileData, error: profileError } = await supabaseClient
+.from('profiles')
+.select('*')
+.eq('id', session.user.id)
+.single();
+
+if (profileError && profileError.code === 'PGRST116') {
+showMessage('Profile not found. Creating new profile...', false);
+const { error: insertError } = await supabaseClient
+.from('profiles')
+.insert({
+id: session.user.id,
+username: session.user.email?.split('@')[0] || 'User',
+balance: 0
+});
+if (insertError) throw insertError;
+await new Promise(r => setTimeout(r, 1000));
+window.location.reload();
+return;
+} else if (profileError) {
+throw profileError;
+}
+
+const { data: creatorData } = await supabaseClient
+.from('creators')
+.select('*')
+.eq('user_id', session.user.id)
+.maybeSingle();
+
+STATE.user = { 
+id: session.user.id, 
+...profileData, 
+creator_id: creatorData?.id 
+};
+
+document.getElementById('headerUsername').innerText = profileData.username;
+document.getElementById('headerBalance').innerText = formatRobux(profileData.balance);
+document.getElementById('totalBalance').innerText = formatRobux(profileData.balance);
+
+if (creatorData?.is_approved) {
+document.getElementById('creator-nav-links').classList.remove('hidden');
+} else {
+document.getElementById('become-creator-panel').classList.remove('hidden');
+}
+
+handleHashChange();
+loadNotifications();
+} catch (e) {
+console.error("Failed to load user profile:", e);
+showMessage("Error loading user profile. Please try refreshing.", true);
+setTimeout(() => {
+window.location.href = 'login.html';
+}, 2000);
+}
+}
+
+async function handleLogout() {
+await supabaseClient.auth.signOut();
+clearInterval(NOTIF_POLL);
+clearInterval(CHAT_POLL);
+window.location.href = 'login.html';
+}
+
+async function loadDashboardData() {
+try {
+if (!STATE.user) return;
+const promotions = await getUserPromotions(5);
+const activityList = document.getElementById('recentActivityList');
+activityList.innerHTML = promotions.map(p => `
+<div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between transition hover:shadow-md fade-in">
+<div class="flex items-center space-x-3">
+<i class="fas ${p.status === 'completed' ? 'fa-check-circle text-green-500' : 'fa-hourglass-half text-brand'} text-xl"></i>
+<div>
+<div class="font-bold">${p.game_name}</div>
+<div class="text-xs text-slate-500">${p.status === 'completed' ? 'Completed' : 'New Purchase'} by ${p.user.username || p.user.username}</div>
+</div>
+</div>
+<div class="text-right">
+<div class="font-bold text-lg text-dark">${formatRobux(p.amount)}</div>
+<div class="text-xs text-slate-400">${formatDate(p.created_at)}</div>
+</div>
+</div>
+`).join('');
+const completedCount = promotions.filter(p => p.status === 'completed').length;
+document.getElementById('activePromotionsCount').innerText = promotions.filter(p => p.status !== 'completed').length;
+document.getElementById('totalCompleted').innerText = completedCount;
+} catch (e) {
+console.error("Failed to load dashboard data:", e);
+document.getElementById('recentActivityList').innerHTML = '<p class="text-slate-500 p-4 text-center">Could not load recent activity.</p>';
+}
+}
+
+async function getUserPromotions(limit = 100, status = null) {
+  try {
+    let query = supabaseClient
+      .from('promotions')
+      .select('*, creator:creator_id ( username ), user:user_id ( username )')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+if (STATE.user?.creator_id && STATE.user?.id) {
+  query = query.or(`user_id.eq.${STATE.user.id},creator_id.eq.${STATE.user.creator_id}`);
+} else if (STATE.user?.id) {
+  query = query.eq('user_id', STATE.user.id);
+}
+
+
+    if (status) query = query.in('status', Array.isArray(status) ? status : [status]);
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
+  } catch (e) {
+    console.error("Error fetching promotions:", e);
+    return [];
+  }
+}
+
+
+function renderPromotionCard(p) {
+let statusBadge = '';
+let actionButton = '';
+switch (p.status) {
+case 'pending':
+statusBadge = '<span class="px-3 py-1 text-sm font-semibold rounded-full bg-yellow-100 text-yellow-800">Pending</span>';
+actionButton = `<button onclick="openChat('${p.id}', '${p.user.username}', '${p.game_name}')" class="text-brand hover:text-brandDark font-bold transition">Chat with Creator <i class="fas fa-arrow-right ml-1 text-sm"></i></button>`;
+break;
+case 'active':
+statusBadge = '<span class="px-3 py-1 text-sm font-semibold rounded-full bg-blue-100 text-blue-800">Active</span>';
+actionButton = `<button onclick="openChat('${p.id}', '${p.user.username}', '${p.game_name}')" class="text-brand hover:text-brandDark font-bold transition">Chat/Details <i class="fas fa-arrow-right ml-1 text-sm"></i></button>`;
+break;
+case 'completed':
+statusBadge = '<span class="px-3 py-1 text-sm font-semibold rounded-full bg-green-100 text-green-800">Completed</span>';
+actionButton = '<span class="text-green-600 font-bold"><i class="fas fa-check-circle mr-1"></i> Delivered</span>';
+break;
+case 'cancelled':
+statusBadge = '<span class="px-3 py-1 text-sm font-semibold rounded-full bg-red-100 text-red-800">Cancelled</span>';
+actionButton = '<span class="text-red-600 font-bold"><i class="fas fa-times-circle mr-1"></i> Canceled</span>';
+break;
+}
+const partnerName = p.creator_id === STATE.user?.creator_id ? p.user.username : p.creator.username;
+const role = p.creator_id === STATE.user?.creator_id ? 'Sale' : 'Purchase';
+return `
+<div class="bg-white p-6 rounded-2xl shadow-xl border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center space-y-3 md:space-y-0 fade-in">
+<div>
+<div class="text-lg font-bold text-dark mb-1">${p.game_name}</div>
+<div class="text-sm text-slate-500 mb-2">
+<span class="font-semibold">${role}</span> with <span class="text-dark font-semibold">${partnerName}</span> on ${formatDate(p.created_at)}
+</div>
+<div class="flex items-center space-x-2">
+${statusBadge}
+<span class="text-2xl font-black text-brand">${formatRobux(p.amount)}</span>
+</div>
+</div>
+<div class="flex flex-col items-start md:items-end space-y-2">
+${actionButton}
+${p.creator_id === STATE.user?.creator_id && p.status === 'active' ? `<button onclick="completePromotion('${p.id}')" class="text-green-600 hover:text-green-700 font-bold text-sm underline">Mark as Completed</button>` : ''}
+</div>
+</div>
+`;
+}
+
+async function loadPromotions() {
+try {
+if (!STATE.user) return;
+const promotions = await getUserPromotions(100);
+STATE.allPurchases = promotions;
+const listEl = document.getElementById('promotionsList');
+if (promotions.length === 0) {
+listEl.innerHTML = '<p class="text-slate-500 p-8 text-center bg-white rounded-xl shadow-sm border border-slate-100">You have no purchases or sales yet.</p>';
+} else {
+listEl.innerHTML = promotions.map(renderPromotionCard).join('');
+}
+} catch (e) {
+console.error("Failed to load promotions:", e);
+document.getElementById('promotionsList').innerHTML = '<p class="text-red-500 p-8 text-center bg-white rounded-xl shadow-sm border border-slate-100">Error loading data.</p>';
+}
+}
+
+async function completePromotion(purchaseId) {
+if (!document.getElementById(`confirm-complete-${purchaseId}`)) {
+const btn = document.querySelector(`[onclick="completePromotion('${purchaseId}')"]`);
+if (!btn) return;
+const card = btn.closest('.flex-col');
+const confirmDiv = document.createElement('div');
+confirmDiv.id = `confirm-complete-${purchaseId}`;
+confirmDiv.className = 'mt-3 pt-3 border-t border-slate-100 flex gap-2';
+confirmDiv.innerHTML = `
+<span class="text-sm text-slate-600">Mark as completed? This action is final.</span>
+<button class="text-white bg-green-500 px-3 py-1 rounded-lg text-xs font-bold hover:bg-green-600" onclick="performCompletion('${purchaseId}')">Confirm</button>
+<button class="text-slate-500 bg-slate-100 px-3 py-1 rounded-lg text-xs font-bold hover:bg-slate-200" onclick="document.getElementById('confirm-complete-${purchaseId}').remove()">Cancel</button>
+`;
+card.appendChild(confirmDiv);
+return;
+}
+}
+
+async function performCompletion(purchaseId) {
+try {
+const { data, error } = await supabaseClient.rpc('complete_promotion', { promo_id: purchaseId });
+if (error) throw error;
+showMessage('Promotion marked as complete!', false);
+loadPromotions();
+} catch (e) {
+console.error("Completion failed:", e);
+showMessage('Failed to complete promotion.', true);
+} finally {
+document.getElementById(`confirm-complete-${purchaseId}`)?.remove();
+}
+}
+
+let currentChatId = null;
+
+function renderChatMessage(msg) {
+const isUser = msg.sender_id === STATE.user?.id;
+const time = new Date(msg.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+const messageContent = msg.file_url
+? `<a href="${msg.file_url}" target="_blank" class="text-blue-400 underline">${msg.text || 'View File'} <i class="fas fa-external-link-alt ml-1"></i></a>`
+: msg.text;
+return `
+<div class="flex ${isUser ? 'justify-end' : 'justify-start'} fade-in">
+<div class="max-w-xs md:max-w-md lg:max-w-lg">
+<div class="text-xs text-slate-500 ${isUser ? 'text-right' : 'text-left'} mb-1">${isUser ? 'You' : msg.sender_username}</div>
+<div class="px-4 py-2 rounded-xl ${isUser ? 'bg-brand text-white rounded-br-none' : 'bg-white text-dark rounded-tl-none border border-slate-200 shadow-sm'}">
+${messageContent}
+<div class="text-xs mt-1 opacity-70 ${isUser ? 'text-right' : 'text-left'}">${time}</div>
+</div>
+</div>
+</div>
+`;
+}
+
+function renderChatPromoListItem(p) {
+const partnerName = p.creator_id === STATE.user?.creator_id ? p.user.username : p.creator.username;
+const activeClass = p.id === currentChatId ? 'bg-white border-brand border-2 shadow-md' : 'hover:bg-slate-100';
+return `
+<div onclick="openChat('${p.id}', '${partnerName}', '${p.game_name}')"
+class="p-3 rounded-xl cursor-pointer transition ${activeClass}">
+<div class="font-bold text-sm truncate">${partnerName}</div>
+<div class="text-xs text-slate-500 truncate">${p.game_name}</div>
+<div class="text-xs text-slate-400 mt-1">${formatDate(p.created_at)}</div>
+</div>
+`;
+}
+
+function updateChatPanel() {
+const chatBox = document.getElementById('chatBox');
+chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+async function loadChatList() {
+try {
+if (!STATE.user) return;
+const promotions = await getUserPromotions(100, ['pending', 'active']);
+const chatListEl = document.getElementById('chatPromoList');
+if (promotions.length === 0) {
+chatListEl.innerHTML = '<p class="text-center text-slate-400 mt-4 text-sm">No active conversations.</p>';
+if (!currentChatId) document.getElementById('chatInputArea').classList.add('hidden');
+} else {
+chatListEl.innerHTML = promotions.map(renderChatPromoListItem).join('');
+}
+if (currentChatId) {
+openChat(currentChatId, document.getElementById('chatPartnerUsername').innerText, document.getElementById('chatPromoTitle').innerText);
+}
+} catch (e) {
+console.error("Failed to load chat list:", e);
+}
+}
+
+async function openChat(purchaseId, partnerUsername, promoTitle) {
+currentChatId = purchaseId;
+loadChatList();
+document.getElementById('chatHeader').classList.remove('hidden');
+document.getElementById('chatInputArea').classList.remove('hidden');
+document.getElementById('chatPartnerUsername').innerText = partnerUsername;
+document.getElementById('chatPromoTitle').innerText = promoTitle;
+document.getElementById('chatBox').innerHTML = '<div class="text-center text-slate-400 mt-10">Loading messages...</div>';
+if (CHAT_POLL) clearInterval(CHAT_POLL);
+await loadMessages();
+CHAT_POLL = setInterval(loadMessages, 5000);
+}
+
+async function loadMessages() {
+if (!currentChatId) return;
+try {
+const { data: messages, error } = await supabaseClient.rpc('get_promotion_messages', { promo_id: currentChatId });
+if (error) throw error;
+const chatBox = document.getElementById('chatBox');
+const newHtml = messages.map(renderChatMessage).join('');
+if (newHtml !== chatBox.innerHTML) {
+chatBox.innerHTML = newHtml;
+updateChatPanel();
+}
+const isCompleted = STATE.allPurchases.find(p => p.id === currentChatId)?.status === 'completed';
+const expiryEl = document.getElementById('chatExpiry');
+expiryEl.classList.toggle('hidden', !isCompleted);
+} catch (e) {
+console.error("Failed to load messages:", e);
+document.getElementById('chatBox').innerHTML = '<p class="text-center text-red-500 mt-10">Error loading chat history.</p>';
+}
+}
+
+async function submitChatMessage(e) {
+e.preventDefault();
+if (!currentChatId) return;
+const inputEl = document.getElementById('chatMessageInput');
+const fileInputEl = document.getElementById('chatFileInput');
+const text = inputEl.value.trim();
+const file = fileInputEl.files[0];
+if (!text && !file) return;
+try {
+let fileUrl = null;
+if (file) {
+const { data, error } = await supabaseClient.storage
+.from('chat_files')
+.upload(`${currentChatId}/${crypto.randomUUID()}`, file);
+if (error) throw error;
+fileUrl = supabaseClient.storage.from('chat_files').getPublicUrl(data.path).data.publicUrl;
+}
+const { error } = await supabaseClient.from('messages').insert({
+purchase_id: currentChatId,
+text: text || (file ? `[File Attached: ${file.name}]` : ''),
+file_url: fileUrl
+});
+if (error) throw error;
+fileInputEl.value = '';
+document.getElementById('fileName').innerText = '';
+document.getElementById('filePreview').classList.add('hidden');
+inputEl.value = '';
+loadMessages();
+} catch (e) {
+console.error("Failed to send message:", e);
+showMessage("Failed to send message.", true);
+}
+}
+
+document.getElementById('chatFileInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  const previewEl = document.getElementById('filePreview');
+  const fileNameEl = document.getElementById('fileName');
+  if (file) {
+    fileNameEl.innerText = file.name;
+    previewEl.classList.remove('hidden');
+  } else {
+    fileNameEl.innerText = '';
+    previewEl.classList.add('hidden');
+  }
+});
+
+
+async function loadListingData() {
+try {
+if (!STATE.user) return;
+const { data: listing } = await supabaseClient
+.from('creators')
+.select('*')
+.eq('user_id', STATE.user.id)
+.maybeSingle();
+
+if (listing) {
+document.getElementById('listingTitle').value = listing.creator_username || listing.username || '';
+document.getElementById('listingBio').value = listing.creator_bio || '';
+document.getElementById('listingRate').value = listing.creator_rate || '';
+document.getElementById('listingPlatform').value = listing.creator_platform || 'youtube';
+
+}
+} catch (e) {
+console.error("Failed to load listing data:", e);
+showMessage("Could not load your listing.", true);
+}
+}
+
+async function saveListing(e) {
+e.preventDefault();
+const id = document.getElementById('listingId').value;
+const title = document.getElementById('listingTitle').value;
+const bio = document.getElementById('listingBio').value;
+const rate = parseInt(document.getElementById('listingRate').value, 10);
+const platform = document.getElementById('listingPlatform').value;
+if (!title || !bio || !rate || !platform) {
+return showMessage("All listing fields must be filled.", true);
+}
+const payload = { username: title, creator_bio: bio, creator_rate: rate, creator_platform: platform, user_id: STATE.user.id };
+try {
+let error;
+if (id) {
+({ error } = await supabaseClient.from('creators').update(payload).eq('id', id));
+} else {
+  ({ error } = await supabaseClient.from('creators').upsert(payload, { onConflict: 'user_id' }));
+}
+if (error) throw error;
+showMessage('Listing saved successfully!', false);
+loadUserProfile();
+} catch (e) {
+console.error("Failed to save listing:", e);
+showMessage("Failed to save listing.", true);
+}
+}
+
+async function submitCreatorApplication(e) {
+e.preventDefault();
+const youtubeUrl = document.getElementById('app-youtube').value;
+const views = parseInt(document.getElementById('app-views').value, 10);
+const spending = parseInt(document.getElementById('app-spending').value, 10);
+if (!youtubeUrl || !views || !spending) {
+return showMessage("All application fields must be filled.", true);
+}
+try {
+  const { error } = await supabaseClient.from('creators').upsert({
+    user_id: STATE.user.id,
+    username: STATE.user.username,
+    creator_platform: /tiktok\.com/.test(youtubeUrl) ? 'tiktok' : 'youtube',
+    creator_bio: `Monthly views: ${views}, spending: ${spending}, channel: ${youtubeUrl}`,
+    creator_rate: 0,
+    is_approved: false
+  }, { onConflict: 'user_id' });
+  if (error) throw error;
+  showMessage('Application submitted! We will review it soon.', false);
+  openModal('');
+} catch (e) {
+  console.error("Failed to submit application:", e);
+  showMessage("Failed to submit application. " + (e?.message || ''), true);
+}
+}
+
+async function loadFundsData() {
+try {
+if (!STATE.user) return;
+const { data: payouts } = await supabaseClient
+.from('payouts')
+.select('*')
+.eq('user_id', STATE.user.id)
+.order('created_at', { ascending: false });
+
+document.getElementById('fundsCurrentBalance').innerText = formatRobux(STATE.user.balance);
+const historyList = document.getElementById('payoutHistoryList');
+if (!payouts || payouts.length === 0) {
+historyList.innerHTML = '<p class="text-slate-500 p-4 text-center bg-white rounded-xl shadow-sm border border-slate-100">No payout history found.</p>';
+return;
+}
+historyList.innerHTML = payouts.map(p => `
+<div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex justify-between items-center fade-in">
+<div>
+<div class="font-bold">Withdrawal to Gamepass ${p.gamepass_id}</div>
+<div class="text-sm text-slate-500">${p.status === 'paid' ? 'Paid' : 'Pending'} on ${formatDate(p.created_at)}</div>
+</div>
+<div class="text-right">
+<div class="text-xl font-black text-dark">${formatRobux(p.amount)}</div>
+<div class="text-xs text-slate-400">Fee: ${formatRobux(p.platform_fee)}</div>
+</div>
+</div>
+`).join('');
+} catch (e) {
+console.error("Failed to load funds data:", e);
+document.getElementById('payoutHistoryList').innerHTML = '<p class="text-red-500 p-4 text-center bg-white rounded-xl shadow-sm border border-slate-100">Error loading history.</p>';
+}
+}
+
+async function submitPayout(e) {
+e.preventDefault();
+const form = e.target;
+const amount = parseInt(form.elements.amount.value, 10);
+const gamepassUrl = form.elements.gamepass_url.value.trim();
+if (amount < 100 || !gamepassUrl) {
+return showMessage("Amount must be R$ 100 or more, and a valid Gamepass URL is required.", true);
+}
+const gamepassId = extractGamepassId(gamepassUrl);
+if (!gamepassId) {
+return showMessage("Could not extract a valid Gamepass ID from the URL.", true);
+}
+try {
+const { error } = await supabaseClient.from('payouts').insert({
+user_id: STATE.user.id,
+amount,
+gamepass_id: gamepassId,
+platform_fee: Math.round(amount * 0.1)
+});
+if (error) throw error;
+showMessage('Withdrawal request submitted! Processing may take up to 24 hours.', false);
+form.reset();
+loadFundsData();
+loadUserProfile();
+} catch (e) {
+console.error("Payout failed:", e);
+showMessage("Failed to submit payout.", true);
+}
+}
+
+function renderNotification(n) {
+const icon = n.type === 'message' ? 'fas fa-envelope text-blue-500' : 'fas fa-bolt text-brand';
+const linkAction = n.type === 'message' ? `onclick="window.location.hash='#chat'; openChat('${n.purchase_id}', '${n.partner_username}', '${n.purchase_title}')"` : '';
+const readClass = n.is_read ? 'text-slate-500' : 'bg-red-50/50 text-dark font-bold';
+return `
+<div class="p-3 border-b border-slate-100 cursor-pointer hover:bg-slate-100 transition flex items-center gap-3 ${readClass}" data-id="${n.id}" ${linkAction}>
+<i class="${icon} text-lg w-5 text-center"></i>
+<div class="flex-1">
+<div class="text-sm">${n.message}</div>
+<div class="text-xs text-slate-400 mt-0.5">${formatDate(n.created_at)}</div>
+</div>
+</div>
+`;
+}
+
+async function loadNotifications() {
+try {
+if (!STATE.user) return;
+const { data: notifications } = await supabaseClient
+.from('notifications')
+.select('*')
+.eq('user_id', STATE.user.id)
+.order('created_at', { ascending: false });
+
+STATE.notifications = notifications || [];
+const panel = document.getElementById('notificationPanel');
+const countEl = document.getElementById('notificationCount');
+const listEl = document.getElementById('notificationList');
+const unreadCount = STATE.notifications.filter(n => !n.is_read).length;
+countEl.innerText = unreadCount;
+countEl.classList.toggle('hidden', unreadCount === 0);
+if (STATE.notifications.length === 0) {
+listEl.innerHTML = '<div class="p-4 text-center text-slate-500 text-sm">No new notifications.</div>';
+} else {
+listEl.innerHTML = STATE.notifications.map(renderNotification).join('');
+}
+document.querySelectorAll('#notificationList > div').forEach(item => {
+item.addEventListener('click', () => {
+const notifId = item.getAttribute('data-id');
+if (notifId) markAsRead(notifId);
+panel.classList.add('hidden');
+});
+});
+} catch (e) {
+console.error("Failed to load notifications:", e);
+}
+}
+
+async function markAsRead(notificationId) {
+try {
+const { error } = await supabaseClient
+.from('notifications')
+.update({ is_read: true })
+.eq('id', notificationId);
+if (error) throw error;
+loadNotifications();
+} catch (e) {
+console.error("Failed to mark notification as read:", e);
+}
+}
+
+async function markAllRead() {
+try {
+const { error } = await supabaseClient
+.from('notifications')
+.update({ is_read: true })
+.eq('user_id', STATE.user.id)
+.is('is_read', false);
+if (error) throw error;
+showMessage('All notifications marked as read.', false);
+loadNotifications();
+} catch (e) {
+console.error("Failed to mark all as read:", e);
+}
+}
+
+document.getElementById('notificationButton').addEventListener('click', (e) => {
+e.stopPropagation();
+const panel = document.getElementById('notificationPanel');
+panel.classList.toggle('hidden');
+});
+document.addEventListener('click', (e) => {
+const panel = document.getElementById('notificationPanel');
+const button = document.getElementById('notificationButton');
+if (!panel.contains(e.target) && !button.contains(e.target) && !panel.classList.contains('hidden')) {
+panel.classList.add('hidden');
+}
+});
+document.getElementById('markAllReadButton').addEventListener('click', markAllRead);
+
+window.onload = function () {
+document.getElementById('logoutButton').addEventListener('click', handleLogout);
+document.getElementById('creatorApplicationForm').addEventListener('submit', submitCreatorApplication);
+document.getElementById('listingForm').addEventListener('submit', saveListing);
+document.getElementById('payoutForm').addEventListener('submit', submitPayout);
+document.getElementById('chatForm').addEventListener('submit', submitChatMessage);
+window.addEventListener('hashchange', handleHashChange);
+loadUserProfile();
+NOTIF_POLL = setInterval(loadNotifications, 30000);
+};
+</script>
+</body>
+</html>

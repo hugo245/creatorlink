@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CreatorLink | Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        tailwind.config = { 
+            theme: { 
+                extend: { 
+                    colors: { 
+                        brand: '#FF0000', 
+                        brandDark: '#CC0000', 
+                        dark: '#0F172A' 
+                    }, 
+                    fontFamily: { 
+                        sans: ['Inter'] 
+                    } 
+                } 
+            } 
+        }
+    </script>
+    <style>
+        /* Custom style for smoother modal transitions */
+        .modal-enter {
+            opacity: 0;
+        }
+        .modal-enter-active {
+            opacity: 1;
+            transition: opacity 300ms;
+        }
+        .modal-exit {
+            opacity: 1;
+        }
+        .modal-exit-active {
+            opacity: 0;
+            transition: opacity 300ms;
+        }
+        .scale-in {
+            transform: scale(1);
+        }
+        .scale-out {
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen flex items-center justify-center p-4 font-sans">
+
+    <!-- Auth Form Card -->
+    <div class="bg-white w-full max-w-md p-10 rounded-3xl shadow-2xl border border-slate-100 relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-32 h-32 bg-brand/5 rounded-full -mr-16 -mt-16 pointer-events-none"></div>
+
+        <div class="text-center mb-8 relative z-10">
+            <a href="creators.html" class="inline-flex items-center space-x-2 text-slate-500 hover:text-brand transition-colors text-sm mb-4 rounded-full p-1 hover:bg-slate-100">
+                <i class="fas fa-arrow-left text-xs"></i> 
+                <span>Back to Creators</span>
+            </a>
+            <h1 class="text-3xl font-extrabold text-dark tracking-tight" id="main-title">Welcome Back</h1>
+            <p class="text-slate-500 mt-2 text-sm" id="subtitle">Log in or sign up to manage your creative ventures.</p>
+        </div>
+        
+        <form id="auth-form" class="space-y-6 relative z-10">
+            
+            <!-- Dynamic fields will be added here for Signup -->
+            <div id="dynamic-signup-fields" class="space-y-6"></div>
+            
+            <div>
+                <label for="email" class="block text-sm font-medium text-slate-700 mb-2">Email Address</label>
+                <div class="relative">
+                    <input type="email" id="email" name="email" required placeholder="your.email@example.com" class="w-full p-3 pl-10 border border-slate-300 rounded-xl focus:border-brand focus:ring-brand focus:ring-1 transition duration-150 shadow-sm">
+                    <i class="fas fa-envelope absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 text-sm"></i>
+                </div>
+            </div>
+            
+            <div>
+                <label for="password" class="block text-sm font-medium text-slate-700 mb-2">Password</label>
+                <div class="relative">
+                    <input type="password" id="password" name="password" required placeholder="••••••••" class="w-full p-3 pl-10 border border-slate-300 rounded-xl focus:border-brand focus:ring-brand focus:ring-1 transition duration-150 shadow-sm">
+                    <i class="fas fa-lock absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 text-sm"></i>
+                </div>
+            </div>
+
+            <button type="submit" id="submit-btn" class="w-full bg-brand text-white font-semibold p-3 rounded-xl shadow-lg hover:bg-brandDark transition duration-200 focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 disabled:opacity-50" aria-label="Submit Authentication Form">
+                Log In
+            </button>
+            
+            <p class="text-center text-sm text-slate-500 mt-4">
+                <span id="toggle-message">Don't have an account?</span>
+                <button type="button" id="toggle-auth-btn" class="text-brand font-medium hover:text-brandDark transition-colors ml-1 focus:outline-none focus:ring-2 focus:ring-brand/50 rounded-md">
+                    Sign Up
+                </button>
+            </p>
+        </form>
+
+    </div>
+
+    <!-- Custom Message Box Modal -->
+    <div id="message-modal" class="fixed inset-0 bg-slate-900 bg-opacity-75 hidden items-center justify-center p-4 z-50 modal-enter">
+        <div class="bg-white rounded-xl p-6 max-w-sm w-full shadow-2xl scale-out transition-transform duration-300">
+            <h3 id="message-title" class="text-xl font-bold mb-3 text-dark"></h3>
+            <p id="message-text" class="text-slate-600 mb-6"></p>
+            <button id="close-modal-btn" class="w-full bg-brand text-white font-semibold p-3 rounded-xl hover:bg-brandDark transition duration-200 focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2">
+                Close
+            </button>
+        </div>
+    </div>
+    
+    <script>
+        // Replace with your Supabase project details
+        const supabaseUrl = 'https://bfbovswcgywmwvumunoc.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJmYm92c3djZ3l3bXd2dW11bm9jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3NzIzODIsImV4cCI6MjA4MDM0ODM4Mn0.Bp-IG9TkHSQIXfx1sg50fNvTsZph6-kRwQDexHY4aKs';
+        const { createClient } = supabase;
+        const supabaseClient = createClient(supabaseUrl, supabaseKey);
+
+        // DOM Elements
+        const form = document.getElementById('auth-form');
+        const toggleBtn = document.getElementById('toggle-auth-btn');
+        const submitBtn = document.getElementById('submit-btn');
+        const toggleMessage = document.getElementById('toggle-message');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const mainTitle = document.getElementById('main-title');
+        const subtitle = document.getElementById('subtitle');
+        const dynamicFieldsContainer = document.getElementById('dynamic-signup-fields');
+        
+        // Modal Elements
+        const modal = document.getElementById('message-modal');
+        const modalInner = modal.querySelector('div');
+        const modalTitle = document.getElementById('message-title');
+        const modalText = document.getElementById('message-text');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+
+        let isSignup = false;
+
+        // --- Custom Message Box ---
+        const showMessage = (title, message, isError = false) => {
+            modalTitle.innerText = title;
+            modalText.innerText = message;
+            
+            modalTitle.classList.remove('text-red-600', 'text-green-600');
+            modalTitle.classList.add(isError ? 'text-red-600' : 'text-green-600');
+            
+            modal.classList.remove('hidden', 'modal-enter');
+            modal.classList.add('modal-enter-active');
+
+            requestAnimationFrame(() => {
+                modalInner.classList.remove('scale-out');
+                modalInner.classList.add('scale-in');
+            });
+        };
+
+        const hideMessage = () => {
+            modalInner.classList.remove('scale-in');
+            modalInner.classList.add('scale-out');
+            
+            modal.classList.remove('modal-enter-active');
+            modal.classList.add('modal-exit-active');
+            
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('modal-exit-active');
+            }, 300); 
+        };
+
+        closeModalBtn.addEventListener('click', hideMessage);
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) hideMessage();
+        });
+
+        // --- Auth Mode Toggle and Dynamic Fields ---
+        const renderSignupFields = () => {
+            dynamicFieldsContainer.innerHTML = `
+                <div>
+                    <label for="username" class="block text-sm font-medium text-slate-700 mb-2">Username</label>
+                    <div class="relative">
+                        <input type="text" id="username" name="username" required placeholder="Your CreatorLink Name" class="w-full p-3 pl-10 border border-slate-300 rounded-xl focus:border-brand focus:ring-brand focus:ring-1 transition duration-150 shadow-sm" autocomplete="username">
+                        <i class="fas fa-user absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 text-sm"></i>
+                </div>
+                </div>
+                <div>
+                    <label for="robloxId" class="block text-sm font-medium text-slate-700 mb-2">Roblox User ID</label>
+                    <div class="relative">
+                        <input type="text" inputmode="numeric" pattern="[0-9]*" id="robloxId" name="robloxId" required placeholder="e.g., 123456789" class="w-full p-3 pl-10 border border-slate-300 rounded-xl focus:border-brand focus:ring-brand focus:ring-1 transition duration-150 shadow-sm">
+                        <i class="fas fa-cube absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 text-sm"></i>
+                        <p class="mt-1 text-xs text-slate-400 pl-10">Needed for payments via Ro-Pay.</p>
+                    </div>
+                </div>
+            `;
+        };
+
+        const toggleAuthMode = () => {
+            isSignup = !isSignup;
+            
+            submitBtn.innerText = isSignup ? 'Sign Up' : 'Log In';
+            toggleBtn.innerText = isSignup ? 'Log In' : 'Sign Up';
+            toggleMessage.innerText = isSignup ? 'Already have an account?' : "Don't have an account?";
+            mainTitle.innerText = isSignup ? 'Create Your Account' : 'Welcome Back';
+            subtitle.innerText = isSignup 
+                ? 'Sign up to create your profile and start earning.'
+                : 'Log in or sign up to manage your creative ventures.';
+
+            if (isSignup) {
+                submitBtn.classList.remove('bg-brand', 'hover:bg-brandDark');
+                submitBtn.classList.add('bg-sky-500', 'hover:bg-sky-600');
+                renderSignupFields(); 
+            } else {
+                submitBtn.classList.remove('bg-sky-500', 'hover:bg-sky-600');
+                submitBtn.classList.add('bg-brand', 'hover:bg-brandDark');
+                dynamicFieldsContainer.innerHTML = ''; 
+            }
+        };
+
+        toggleBtn.addEventListener('click', toggleAuthMode);
+
+        // --- Form Submission Handler ---
+        form.onsubmit = async (e) => {
+            e.preventDefault();
+            
+            const email = emailInput.value.trim();
+            const password = passwordInput.value;
+            
+            const originalText = submitBtn.innerText;
+            submitBtn.disabled = true; 
+            submitBtn.innerText = 'Processing...';
+
+            try {
+                if (isSignup) {
+                    const username = document.getElementById('username').value.trim();
+                    const robloxId = parseInt(document.getElementById('robloxId').value, 10);
+                    if (!username || isNaN(robloxId) || robloxId <= 0) {
+                        throw new Error("Please enter a valid username and Roblox User ID.");
+                    }
+
+                    const { data, error } = await supabaseClient.auth.signUp({
+                        email,
+                        password,
+                        options: {
+                            data: {
+                                username,
+                                roblox_id: robloxId
+                            }
+                        }
+                    });
+                    if (error) throw error;
+
+                    if (data.session) {
+                        showMessage('Success!', 'Account created! Redirecting to dashboard...', false);
+                        setTimeout(() => {
+                            window.location.href = 'dashboard.html';
+                        }, 1000);
+                    } else {
+                        showMessage('Success!', 'Account created successfully. Please check your email to confirm your account.', false);
+                        toggleAuthMode();
+                        emailInput.value = email; 
+                        passwordInput.value = ''; 
+                    }
+                } else {
+                    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+                    if (error) throw error;
+
+                    if (data.session) { 
+                        showMessage('Login Success!', 'You are now logged in. Redirecting to dashboard...', false);
+                        
+                        setTimeout(() => {
+                            window.location.href = 'dashboard.html';
+                        }, 1000);
+                    } else {
+                        throw new Error('Login successful, but session data was incomplete. Please try again.');
+                    }
+                }
+            } catch (err) { 
+                showMessage("Authentication Failed", err.message, true); 
+            } finally { 
+                if (!(await supabaseClient.auth.getSession()).data.session) {
+                    submitBtn.disabled = false; 
+                    submitBtn.innerText = originalText;
+                }
+            }
+        };
+
+        // --- INITIALIZATION ---
+        window.onload = async () => {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (session) {
+                window.location.href = 'dashboard.html';
+            }
+            if (isSignup) {
+                 toggleAuthMode();
+            }
+        };
+    </script>
+</body>
+</html>

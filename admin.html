@@ -1,0 +1,69 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Admin Panel</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+</head>
+<body class="p-6 bg-slate-50 font-sans">
+  <div class="max-w-4xl mx-auto">
+    <h1 class="text-2xl font-bold mb-4">CreatorLink — Admin Panel</h1>
+    <div id="notice" class="mb-4 text-sm text-red-600"></div>
+    <div class="mb-4 flex gap-2">
+      <input id="filter" placeholder="Filter username" class="border p-2 rounded flex-1">
+      <button id="refresh" class="bg-blue-600 text-white px-4 py-2 rounded">Refresh</button>
+    </div>
+    <div id="list" class="space-y-3"></div>
+  </div>
+
+  <script>
+    const supabaseUrl = window.SUPABASE_URL || '';
+    const supabaseKey = window.SUPABASE_ANON_KEY || '';
+    if (!supabaseUrl || !supabaseKey) {
+      document.getElementById('notice').innerText = 'Please set `SUPABASE_URL` and `SUPABASE_ANON_KEY` in test/config.js';
+    }
+    const { createClient } = supabase;
+    const supabaseClient = createClient(supabaseUrl, supabaseKey);
+
+    async function loadCreators() {
+      const filter = document.getElementById('filter').value.trim();
+      let q = supabaseClient.from('creators').select('*').order('created_at', { ascending: false }).limit(200);
+      if (filter) q = q.ilike('username', `%${filter}%`);
+      const { data, error } = await q;
+      if (error) return (document.getElementById('list').innerText = 'Error loading creators: ' + error.message);
+      document.getElementById('list').innerHTML = data.map(c => `
+        <div class="bg-white p-4 rounded shadow flex items-center justify-between">
+          <div>
+            <div class="font-bold">${c.username || ''} <span class="text-xs text-slate-400">(${c.user_id || ''})</span></div>
+            <div class="text-sm text-slate-500">${c.creator_bio || ''}</div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="toggleApprove('${c.id}', ${c.is_approved ? 'false' : 'true'})" class="px-3 py-1 rounded ${c.is_approved ? 'bg-yellow-500 text-white' : 'bg-green-600 text-white'} text-sm">${c.is_approved ? 'Revoke' : 'Approve'}</button>
+            <button onclick="deleteCreator('${c.id}')" class="px-3 py-1 rounded bg-red-500 text-white text-sm">Delete</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function toggleApprove(id, setTo) {
+      const { error } = await supabaseClient.from('creators').update({ is_approved: setTo }).eq('id', id);
+      if (error) return alert('Error: ' + error.message);
+      loadCreators();
+    }
+
+    async function deleteCreator(id) {
+      if (!confirm('Delete creator record? This cannot be undone.')) return;
+      const { error } = await supabaseClient.from('creators').delete().eq('id', id);
+      if (error) return alert('Error: ' + error.message);
+      loadCreators();
+    }
+
+    document.getElementById('refresh').addEventListener('click', loadCreators);
+    document.getElementById('filter').addEventListener('input', () => setTimeout(loadCreators, 300));
+    loadCreators();
+  </script>
+</body>
+</html>
