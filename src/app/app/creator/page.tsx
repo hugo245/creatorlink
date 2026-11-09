@@ -10,8 +10,8 @@ export const metadata = { title: 'Creator listing' };
 
 export default async function CreatorPage() {
   const user = await requireUser();
-  const c = getCreatorByUser(user.id);
-  const pkgs = c ? getPackages(c.id) : [];
+  const c = await getCreatorByUser(user.id);
+  const pkgs = c ? await getPackages(c.id) : [];
 
   const banner = !c ? null : {
     pending: { Icon: Clock, cls: 'bg-amber-soft text-amber', t: 'Application under review', d: 'We review every creator by hand, usually within a day. You can keep editing your profile and prepare packages meanwhile.' },

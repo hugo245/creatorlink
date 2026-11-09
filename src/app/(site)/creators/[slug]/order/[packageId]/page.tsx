@@ -19,8 +19,8 @@ export default async function OrderPage({ params }: { params: Promise<{ slug: st
   const { slug, packageId } = await params;
   const user = await getUser();
   if (!user) redirect(`/login?next=${encodeURIComponent(`/creators/${slug}/order/${packageId}`)}`);
-  const c = getCreatorBySlug(slug);
-  const p = getPackage(packageId);
+  const c = await getCreatorBySlug(slug);
+  const p = await getPackage(packageId);
   if (!c || c.status !== 'approved' || !p || p.creator_id !== c.id || !p.active) notFound();
   if (c.user_id === user.id) redirect(`/creators/${slug}`);
   const short = user.balance < p.price;

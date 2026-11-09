@@ -1,9 +1,9 @@
 import Link from 'next/link';
-import { ArrowRight, Check, Search } from 'lucide-react';
+import { ArrowRight, BadgeCheck, Check, LifeBuoy, Search, ShieldCheck, Tag } from 'lucide-react';
 import { Shell } from '@/components/marketing/shell';
 import { CreatorCard } from '@/components/creator-card';
 import { Avatar } from '@/components/avatar';
-import { TikTokIcon } from '@/components/icons';
+import { TikTokIcon, YouTubeIcon } from '@/components/icons';
 import { featuredCreators } from '@/lib/creators';
 import { config } from '@/lib/config';
 import { NICHES } from '@/lib/validators';
@@ -17,6 +17,13 @@ const STEPS = [
   ['Release the funds', 'Approve and the creator is paid. If something goes wrong, support steps in and the escrow protects you.'],
 ];
 
+const TRUST = [
+  [ShieldCheck, 'Escrow on every order', 'Funds are locked until you approve.'],
+  [BadgeCheck, 'Reviewed creators', 'Every channel is checked by hand.'],
+  [Tag, 'Fixed prices', 'See the price before you commit.'],
+  [LifeBuoy, 'Dispute support', 'A person reads every dispute.'],
+] as const;
+
 const FAQ = [
   ['How does escrow work?', 'When you place an order, the price is taken from your CreatorLink balance and held on the order. The creator is paid only after you approve the delivery, or after the 72-hour review window passes. If they decline, miss the deadline, or lose a dispute, the full amount returns to your balance.'],
   ['What does it cost?', `Ordering is free for developers. You pay the package price and nothing on top. Creators pay a ${config.feeBps / 100}% service fee on completed orders only. There are no listing fees or subscriptions.`],
@@ -25,24 +32,24 @@ const FAQ = [
   ['What if the work isn’t what I asked for?', 'Request a revision first. Each package includes a set number. If you still can’t agree, open a dispute. Support reads the conversation and the delivery, then releases the funds or refunds you.'],
 ];
 
-export default function Home() {
-  const creators = featuredCreators(4);
+export default async function Home() {
+  const creators = await featuredCreators(4);
   return (
     <Shell>
       {/* hero */}
-      <section className="border-b border-line">
-        <div className="container-x grid items-center gap-12 py-14 sm:py-20 lg:grid-cols-[1.15fr_1fr]">
+      <section className="border-b border-line bg-paper">
+        <div className="container-x grid items-center gap-12 py-14 sm:py-20 lg:grid-cols-[1.05fr_1fr] lg:py-24">
           <div>
             <h1 className="font-display text-[42px] font-bold leading-[1.02] tracking-tightest sm:text-6xl lg:text-[64px]">
               Hire Roblox creators.
               <br />
-              Pay when the video is live.
+              <span className="text-signal">Pay when the video is live.</span>
             </h1>
             <p className="mt-5 max-w-xl text-[17px] leading-relaxed text-ink-2">
               Book YouTubers and TikTokers for fixed-price game promotions. Your Robux stays in escrow until you have seen the delivery and approved it.
             </p>
 
-            <form action="/creators" className="mt-8 grid max-w-xl gap-2 rounded-2xl border border-line-strong bg-white p-2 shadow-card sm:grid-cols-[1fr_1fr_auto]">
+            <form action="/creators" className="mt-8 grid max-w-xl gap-2 rounded-2xl border border-line-strong bg-white p-2 shadow-lift sm:grid-cols-[1fr_1fr_auto]">
               <select name="niche" aria-label="Genre" className="h-11 rounded-lg bg-transparent px-3 text-[15px] outline-none hover:bg-paper-2 focus:bg-paper-2">
                 <option value="">Any genre</option>
                 {NICHES.map((n) => <option key={n}>{n}</option>)}
@@ -58,32 +65,31 @@ export default function Home() {
               Are you a creator? <Link href="/signup?intent=creator" className="font-semibold text-ink underline underline-offset-4">Apply to list your channel</Link>
             </p>
           </div>
-          <SampleOrder />
+          <HeroVisual />
         </div>
       </section>
 
-      {/* how it works */}
-      <section id="how" className="scroll-mt-16 py-16 sm:py-24">
-        <div className="container-x">
-          <h2 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">How it works</h2>
-          <ol className="mt-10 grid gap-x-10 gap-y-8 sm:grid-cols-2 lg:grid-cols-4">
-            {STEPS.map(([t, d], i) => (
-              <li key={t} className="border-t-2 border-ink pt-4">
-                <span className="text-sm font-semibold text-ink-3 tnum">Step {i + 1}</span>
-                <h3 className="mt-1 font-display text-xl font-bold">{t}</h3>
-                <p className="mt-2 text-[15px] leading-relaxed text-ink-3">{d}</p>
-              </li>
-            ))}
-          </ol>
+      {/* trust bar */}
+      <section aria-label="Why CreatorLink" className="border-b border-line bg-white">
+        <div className="container-x grid grid-cols-2 gap-x-6 gap-y-6 py-8 lg:grid-cols-4">
+          {TRUST.map(([Icon, t, d]) => (
+            <div key={t} className="flex items-start gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-signal-soft text-signal"><Icon size={20} /></span>
+              <div><p className="text-[15px] font-semibold leading-tight">{t}</p><p className="mt-1 text-sm leading-snug text-ink-3">{d}</p></div>
+            </div>
+          ))}
         </div>
       </section>
 
       {/* creators */}
-      <section className="border-t border-line py-16 sm:py-24">
+      <section className="bg-paper py-16 sm:py-24">
         <div className="container-x">
           <div className="flex flex-wrap items-end justify-between gap-4">
-            <h2 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">Popular creators</h2>
-            <Link href="/creators" className="inline-flex items-center gap-1.5 text-sm font-semibold hover:text-signal">View all creators <ArrowRight size={15} /></Link>
+            <div>
+              <h2 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">Popular creators</h2>
+              <p className="mt-2 text-ink-3">Real audience numbers, fixed prices and reviews from completed orders.</p>
+            </div>
+            <Link href="/creators" className="btn btn-outline">View all creators <ArrowRight size={15} /></Link>
           </div>
           {creators.length > 0 ? (
             <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
@@ -99,12 +105,28 @@ export default function Home() {
         </div>
       </section>
 
+      {/* how it works */}
+      <section id="how" className="scroll-mt-16 border-y border-line bg-white py-16 sm:py-24">
+        <div className="container-x">
+          <h2 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">How it works</h2>
+          <ol className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {STEPS.map(([t, d], i) => (
+              <li key={t} className="rounded-2xl border border-line bg-paper p-6">
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-ink font-display text-sm font-bold text-paper tnum">{i + 1}</span>
+                <h3 className="mt-5 font-display text-xl font-bold">{t}</h3>
+                <p className="mt-2 text-[15px] leading-relaxed text-ink-3">{d}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
       {/* escrow */}
-      <section id="escrow" className="scroll-mt-16 border-y border-line bg-paper-2 py-16 sm:py-24">
-        <div className="container-x grid items-start gap-12 lg:grid-cols-2">
+      <section id="escrow" className="scroll-mt-16 bg-ink py-16 text-paper sm:py-24">
+        <div className="container-x grid items-center gap-12 lg:grid-cols-2">
           <div>
             <h2 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">How escrow protects you</h2>
-            <p className="mt-4 max-w-lg text-[17px] leading-relaxed text-ink-2">
+            <p className="mt-4 max-w-lg text-[17px] leading-relaxed text-paper/75">
               The moment you order, the price leaves your balance and is locked to that order. It only moves again when you approve, when a deadline passes, or when support rules on a dispute. Every movement appears on your ledger.
             </p>
             <dl className="mt-8 space-y-6">
@@ -113,9 +135,9 @@ export default function Home() {
                 ['You decide when it’s done', 'Request revisions, then approve. If you don’t respond, funds release after a 72-hour review window.'],
                 ['Disputes are reviewed by a person', 'Support reads the whole conversation and the delivery before releasing funds or refunding you.'],
               ].map(([t, d]) => (
-                <div key={t}>
-                  <dt className="font-semibold">{t}</dt>
-                  <dd className="mt-1 text-[15px] leading-relaxed text-ink-3">{d}</dd>
+                <div key={t} className="flex gap-3">
+                  <Check size={18} className="mt-1 shrink-0 text-signal" strokeWidth={3} />
+                  <div><dt className="font-semibold">{t}</dt><dd className="mt-1 text-[15px] leading-relaxed text-paper/65">{d}</dd></div>
                 </div>
               ))}
             </dl>
@@ -125,9 +147,9 @@ export default function Home() {
       </section>
 
       {/* two sides */}
-      <section className="py-16 sm:py-24">
+      <section className="bg-paper-2 py-16 sm:py-24">
         <div className="container-x grid gap-5 lg:grid-cols-2">
-          <div className="rounded-2xl border border-line bg-white p-8 shadow-card sm:p-10">
+          <div className="rounded-3xl border border-line bg-white p-8 shadow-card sm:p-10">
             <h3 className="font-display text-2xl font-bold tracking-tight">For developers</h3>
             <p className="mt-3 text-ink-2">See real audience numbers, fixed prices and past reviews before you commit any Robux.</p>
             <ul className="mt-6 space-y-2.5 text-[15px] text-ink-2">
@@ -137,21 +159,21 @@ export default function Home() {
             </ul>
             <Link href="/creators" className="btn btn-primary mt-8">Find a creator</Link>
           </div>
-          <div className="rounded-2xl bg-ink p-8 text-paper sm:p-10">
+          <div className="rounded-3xl bg-signal p-8 text-white sm:p-10">
             <h3 className="font-display text-2xl font-bold tracking-tight">For creators</h3>
-            <p className="mt-3 text-paper/75">Set your own packages and prices, and work with developers whose funds are already locked in.</p>
-            <ul className="mt-6 space-y-2.5 text-[15px] text-paper/85">
+            <p className="mt-3 text-white/85">Set your own packages and prices, and work with developers whose funds are already locked in.</p>
+            <ul className="mt-6 space-y-2.5 text-[15px] text-white/90">
               {['Orders arrive pre-funded', `You keep ${100 - config.feeBps / 100}% of every package`, 'Withdraw to your own gamepass'].map((t) => (
-                <li key={t} className="flex gap-2.5"><Check size={17} className="mt-0.5 shrink-0 text-signal" strokeWidth={3} />{t}</li>
+                <li key={t} className="flex gap-2.5"><Check size={17} className="mt-0.5 shrink-0" strokeWidth={3} />{t}</li>
               ))}
             </ul>
-            <Link href="/signup?intent=creator" className="btn btn-signal mt-8">Apply as a creator</Link>
+            <Link href="/signup?intent=creator" className="btn mt-8 bg-white text-ink hover:bg-paper">Apply as a creator</Link>
           </div>
         </div>
       </section>
 
       {/* faq */}
-      <section id="faq" className="scroll-mt-16 border-t border-line py-16 sm:py-24">
+      <section id="faq" className="scroll-mt-16 py-16 sm:py-24">
         <div className="container-x grid gap-10 lg:grid-cols-[1fr_1.7fr]">
           <div>
             <h2 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">Frequently asked questions</h2>
@@ -177,12 +199,15 @@ export default function Home() {
       </section>
 
       {/* cta */}
-      <section className="border-t border-line bg-ink py-14 text-paper">
+      <section className="border-t border-line bg-white py-14">
         <div className="container-x flex flex-wrap items-center justify-between gap-6">
-          <h2 className="max-w-xl font-display text-3xl font-bold tracking-tight">Ready to promote your game?</h2>
+          <div>
+            <h2 className="font-display text-3xl font-bold tracking-tight">Ready to promote your game?</h2>
+            <p className="mt-1.5 text-ink-3">Create a free account and place your first order in minutes.</p>
+          </div>
           <div className="flex flex-wrap gap-3">
-            <Link href="/creators" className="btn btn-signal btn-lg">Browse creators</Link>
-            <Link href="/signup" className="btn btn-lg border border-paper/30 text-paper hover:bg-paper/10">Create an account</Link>
+            <Link href="/signup" className="btn btn-signal btn-lg">Create an account</Link>
+            <Link href="/creators" className="btn btn-outline btn-lg">Browse creators</Link>
           </div>
         </div>
       </section>
@@ -192,35 +217,50 @@ export default function Home() {
 
 /* ---------------------------------------------------------------- visuals */
 
-function SampleOrder() {
+function HeroVisual() {
   return (
-    <div className="w-full max-w-[480px] justify-self-end rounded-2xl border border-line bg-white p-5 shadow-lift" aria-label="Example order">
-      <p className="mb-4 text-xs font-semibold uppercase tracking-wide text-ink-3">Example order</p>
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <Avatar name="Kai Plays" size={44} />
-          <div>
-            <p className="font-display font-bold leading-tight">Kai Plays</p>
-            <p className="flex items-center gap-1.5 text-xs text-ink-3"><TikTokIcon width={12} height={12} /> 60s gameplay short</p>
+    <div className="relative rounded-[28px] bg-signal-soft p-5 sm:p-8" aria-label="Example order">
+      <div className="rounded-2xl border border-line bg-white p-5 shadow-pop">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <Avatar name="Kai Plays" size={44} />
+            <div>
+              <p className="font-display font-bold leading-tight">Kai Plays</p>
+              <p className="flex items-center gap-1.5 text-xs text-ink-3"><TikTokIcon width={12} height={12} /> 60s gameplay short</p>
+            </div>
           </div>
+          <span className="badge bg-moss-soft text-moss">Delivered</span>
         </div>
-        <span className="badge bg-moss-soft text-moss">Delivered</span>
+        <dl className="mt-5 grid grid-cols-2 gap-3 border-y border-line py-4 text-sm">
+          <div><dt className="text-ink-3">Game</dt><dd className="font-semibold">Race Clicker X</dd></div>
+          <div className="text-right"><dt className="text-ink-3">In escrow</dt><dd className="font-semibold tnum">R$ 1,200</dd></div>
+        </dl>
+        <ol className="mt-5 grid grid-cols-4 gap-1.5 text-xs font-semibold">
+          {[['Funded', 'done'], ['Accepted', 'done'], ['Delivered', 'now'], ['Released', 'todo']].map(([l, s]) => (
+            <li key={l}>
+              <div className={`mb-2 h-1.5 rounded-full ${s === 'done' ? 'bg-ink' : s === 'now' ? 'bg-signal' : 'bg-paper-3'}`} />
+              <span className={s === 'todo' ? 'text-ink-4' : ''}>{l}</span>
+            </li>
+          ))}
+        </ol>
+        <div className="mt-5 flex gap-2">
+          <span className="btn btn-signal flex-1">Approve and release</span>
+          <span className="btn btn-outline">Request revision</span>
+        </div>
       </div>
-      <dl className="mt-5 grid grid-cols-2 gap-3 border-y border-line py-4 text-sm">
-        <div><dt className="text-ink-3">Game</dt><dd className="font-semibold">Race Clicker X</dd></div>
-        <div className="text-right"><dt className="text-ink-3">In escrow</dt><dd className="font-semibold tnum">R$ 1,200</dd></div>
-      </dl>
-      <ol className="mt-5 grid grid-cols-4 gap-1.5 text-xs font-semibold">
-        {[['Funded', 'done'], ['Accepted', 'done'], ['Delivered', 'now'], ['Released', 'todo']].map(([l, s]) => (
-          <li key={l}>
-            <div className={`mb-2 h-1.5 rounded-full ${s === 'done' ? 'bg-ink' : s === 'now' ? 'bg-signal' : 'bg-paper-3'}`} />
-            <span className={s === 'todo' ? 'text-ink-4' : ''}>{l}</span>
-          </li>
-        ))}
-      </ol>
-      <div className="mt-5 flex gap-2">
-        <span className="btn btn-signal flex-1">Approve and release</span>
-        <span className="btn btn-outline">Request revision</span>
+
+      <div className="mt-4 flex gap-3 rounded-2xl border border-line bg-white p-4 shadow-lift sm:ml-10">
+        <Avatar name="Kai Plays" size={30} />
+        <div className="min-w-0">
+          <p className="text-[13px] font-semibold">Kai Plays</p>
+          <p className="mt-0.5 text-[13px] leading-snug text-ink-2">Video is up. I used your trailer clip at the end. Happy to change the hook if you want.</p>
+          <p className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-paper-2 px-2 py-1 text-xs font-medium"><YouTubeIcon width={13} height={13} className="text-[#E62117]" /> youtu.be/raceclickerx</p>
+        </div>
+      </div>
+
+      <div className="mt-4 flex items-center justify-between rounded-2xl bg-ink px-5 py-3.5 text-paper shadow-lift sm:mr-10">
+        <span className="flex items-center gap-2 text-sm font-medium"><Check size={16} className="text-signal" strokeWidth={3} /> Funds released to creator</span>
+        <span className="font-display font-bold tnum">R$ 1,080</span>
       </div>
     </div>
   );
@@ -235,7 +275,7 @@ function Ledger() {
     ['Platform fee', '10% of order', '120', 'muted'],
   ];
   return (
-    <div className="rounded-2xl border border-line bg-white shadow-card" aria-label="Example ledger">
+    <div className="rounded-2xl bg-white text-ink shadow-pop" aria-label="Example ledger">
       <div className="flex items-center justify-between border-b border-line px-5 py-4">
         <p className="font-display font-bold">Order ledger</p>
         <span className="badge bg-moss text-white"><Check size={12} strokeWidth={3} /> Completed</span>

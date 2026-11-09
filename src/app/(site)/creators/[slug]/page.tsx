@@ -12,7 +12,7 @@ import { compact, plural, rating, timeAgo } from '@/lib/format';
 export const dynamic = 'force-dynamic';
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
-  const c = getCreatorBySlug((await params).slug);
+  const c = await getCreatorBySlug((await params).slug);
   if (!c || c.status !== 'approved') return { title: 'Creator not found' };
   return { title: c.display_name, description: c.headline, openGraph: { title: `${c.display_name} on CreatorLink`, description: c.headline } };
 }
@@ -20,11 +20,11 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 export default async function CreatorPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const user = await getUser();
-  const c = getCreatorBySlug(slug);
+  const c = await getCreatorBySlug(slug);
   const own = !!user && !!c && c.user_id === user.id;
   if (!c || (c.status !== 'approved' && !own && user?.role !== 'admin')) notFound();
-  const pkgs = getPackages(c.id);
-  const reviews = getReviews(c.id);
+  const pkgs = await getPackages(c.id);
+  const reviews = await getReviews(c.id);
   const avg = rating(c.rating_sum, c.rating_count);
 
   return (

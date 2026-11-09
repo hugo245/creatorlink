@@ -28,7 +28,7 @@ const hashToken = (t: string) => createHash('sha256').update(t).digest('hex');
 export async function createSession(userId: string) {
   const token = randomBytes(32).toString('base64url');
   const h = await headers();
-  run(
+  await run(
     'INSERT INTO sessions (id, user_id, expires_at, created_at, user_agent) VALUES (?,?,?,?,?)',
     hashToken(token),
     userId,
@@ -49,7 +49,7 @@ export async function createSession(userId: string) {
 export async function destroySession() {
   const jar = await cookies();
   const token = jar.get(COOKIE)?.value;
-  if (token) run('DELETE FROM sessions WHERE id = ?', hashToken(token));
+  if (token) await run('DELETE FROM sessions WHERE id = ?', hashToken(token));
   jar.delete(COOKIE);
 }
 
@@ -58,7 +58,7 @@ export const getUser = cache(async (): Promise<SessionUser | null> => {
   const jar = await cookies();
   const token = jar.get(COOKIE)?.value;
   if (!token) return null;
-  const row = get<SessionUser & { expires_at: number }>(
+  const row = await get<SessionUser & { expires_at: number }>(
     `SELECT u.id, u.email, u.username, u.role, u.roblox_username, u.avatar, u.balance, u.banned_at,
             c.id AS creator_id, c.status AS creator_status, c.slug AS creator_slug, s.expires_at
        FROM sessions s JOIN users u ON u.id = s.user_id
@@ -83,9 +83,9 @@ export async function requireAdmin(): Promise<SessionUser> {
 }
 
 /** Revoke every session for a user, optionally keeping the one identified by `keepHash`. */
-export function revokeSessions(userId: string, keepHash?: string | null) {
-  if (keepHash) run('DELETE FROM sessions WHERE user_id = ? AND id != ?', userId, keepHash);
-  else run('DELETE FROM sessions WHERE user_id = ?', userId);
+export async function revokeSessions(userId: string, keepHash?: string | null) {
+  if (keepHash) await run('DELETE FROM sessions WHERE user_id = ? AND id != ?', userId, keepHash);
+  else await run('DELETE FROM sessions WHERE user_id = ?', userId);
 }
 
 export async function currentTokenHash() {
@@ -95,5 +95,5 @@ export async function currentTokenHash() {
 }
 
 export function purgeExpiredSessions() {
-  run('DELETE FROM sessions WHERE expires_at < ?', now());
+  return run('DELETE FROM sessions WHERE expires_at < ?', now());
 }

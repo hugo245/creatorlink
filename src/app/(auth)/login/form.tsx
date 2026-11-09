@@ -4,11 +4,12 @@ import Link from 'next/link';
 import { ActionForm, Field, Notice, SubmitButton } from '@/components/form';
 import { login } from '@/app/actions/auth';
 
-export function LoginForm({ next }: { next: string }) {
+export function LoginForm({ next, reset }: { next: string; reset?: boolean }) {
   return (
     <>
       <h1 className="font-display text-4xl font-bold tracking-tight">Welcome back</h1>
       <p className="mt-2 text-ink-3">Log in to manage your orders and wallet.</p>
+      {reset && <p className="mt-5 rounded-lg bg-moss-soft px-3 py-2.5 text-sm text-moss" role="status">Password updated. Log in with your new password.</p>}
       <ActionForm action={login} className="mt-8 space-y-5">
         {(s) => (
           <>
@@ -18,6 +19,7 @@ export function LoginForm({ next }: { next: string }) {
             </Field>
             <Field label="Password" name="password" error={s?.fields?.password}>
               <input id="password" name="password" type="password" autoComplete="current-password" className="field" />
+              <Link href="/forgot" className="mt-2 inline-block text-xs font-semibold text-ink-3 underline underline-offset-4 hover:text-ink">Forgot your password?</Link>
             </Field>
             <Notice state={s} />
             <SubmitButton className="btn btn-primary btn-lg w-full" pendingText="Logging in…">Log in</SubmitButton>

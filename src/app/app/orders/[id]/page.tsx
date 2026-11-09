@@ -28,14 +28,14 @@ function stepIndex(status: string, delivered: boolean) {
 export default async function OrderPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ placed?: string }> }) {
   const { id } = await params;
   const user = await requireUser();
-  const o = orderDetail(id);
+  const o = await orderDetail(id);
   if (!o) notFound();
   const role = o.buyer_id === user.id ? 'buyer' : o.seller_user_id === user.id ? 'seller' : user.role === 'admin' ? 'admin' : null;
   if (!role) notFound();
 
   const placed = (await searchParams).placed === '1';
-  const msgs = orderMessages(o.id);
-  const review = get<{ rating: number; body: string }>('SELECT rating, body FROM reviews WHERE order_id = ?', o.id);
+  const msgs = await orderMessages(o.id);
+  const review = await get<{ rating: number; body: string }>('SELECT rating, body FROM reviews WHERE order_id = ?', o.id);
   const closed = ['completed', 'cancelled', 'declined', 'refunded'].includes(o.status);
   const canChat = !closed || Date.now() - (o.completed_at ?? o.updated_at) < 7 * 86_400_000;
   const partner = role === 'seller' ? o.buyer_name : o.creator_name;

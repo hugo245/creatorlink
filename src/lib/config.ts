@@ -16,7 +16,8 @@ export const config = {
   depositGamepassUrl: process.env.DEPOSIT_GAMEPASS_URL || '',
   supportEmail: process.env.SUPPORT_EMAIL || 'support@creatorlink.example',
   isProd: process.env.NODE_ENV === 'production',
-  maxUploadBytes: 8 * 1024 * 1024,
+  // Kept under Vercel's 4.5 MB request limit for serverless functions.
+  maxUploadBytes: 4 * 1024 * 1024,
 } as const;
 
 export const HOUR = 3_600_000;

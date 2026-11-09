@@ -8,15 +8,15 @@ import { OrderList } from '@/components/app/order-list';
 
 export default async function Overview() {
   const user = await requireUser();
-  const open = ordersForUser(user.id, 'open', 6);
-  const stats = get<{ spent: number; earned: number; completed: number; escrow: number }>(
+  const open = await ordersForUser(user.id, 'open', 6);
+  const stats = (await get<{ spent: number; earned: number; completed: number; escrow: number }>(
     `SELECT
        COALESCE((SELECT SUM(price) FROM orders WHERE buyer_id = ? AND status = 'completed'), 0) AS spent,
        COALESCE((SELECT SUM(price - fee) FROM orders WHERE seller_user_id = ? AND status = 'completed'), 0) AS earned,
        (SELECT COUNT(*) FROM orders WHERE (buyer_id = ? OR seller_user_id = ?) AND status = 'completed') AS completed,
        COALESCE((SELECT SUM(price) FROM orders WHERE buyer_id = ? AND status IN ('pending','active','delivered','disputed')), 0) AS escrow`,
     user.id, user.id, user.id, user.id, user.id,
-  )!;
+  ))!;
   const action = open.filter((o) => (o.seller_user_id === user.id && o.status === 'pending') || (o.buyer_id === user.id && o.status === 'delivered'));
 
   return (

@@ -24,7 +24,7 @@ export default async function Browse({ searchParams }: { searchParams: Promise<R
   const niche = NICHES.find((n) => n === sp.niche);
   const maxPrice = PRICES.includes(Number(sp.max)) ? Number(sp.max) : undefined;
   const page = Math.max(1, parseInt(sp.page ?? '1', 10) || 1);
-  const { creators, total, pages } = listCreators({ q: sp.q?.slice(0, 60), platform, niche, maxPrice, sort, page, perPage: 12 });
+  const { creators, total, pages } = await listCreators({ q: sp.q?.slice(0, 60), platform, niche, maxPrice, sort, page, perPage: 12 });
   const filtered = !!(sp.q || platform || niche || maxPrice);
 
   const pageHref = (p: number) => {

@@ -9,7 +9,7 @@ export const metadata = { title: 'Notifications' };
 
 export default async function NotificationsPage() {
   const user = await requireUser();
-  const items = all<{ id: string; title: string; body: string; href: string | null; read_at: number | null; created_at: number }>('SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 100', user.id);
+  const items = await all<{ id: string; title: string; body: string; href: string | null; read_at: number | null; created_at: number }>('SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 100', user.id);
   return (
     <>
       <PageHeader title="Notifications" />

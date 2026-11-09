@@ -11,7 +11,7 @@ export const metadata = { title: 'Orders' };
 export default async function Orders({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const user = await requireUser();
   const tab = (await searchParams).tab === 'done' ? 'done' : (await searchParams).tab === 'all' ? 'all' : 'open';
-  const orders = ordersForUser(user.id, tab);
+  const orders = await ordersForUser(user.id, tab);
   return (
     <>
       <PageHeader title="Orders" sub="Everything you’re buying and selling, with its conversation." />

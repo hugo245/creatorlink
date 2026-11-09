@@ -1,262 +1,147 @@
-import type { DatabaseSync, StatementSync } from 'node:sqlite';
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { randomBytes } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { MIGRATIONS } from './schema';
 
 /**
- * SQLite via Node's built-in driver (no native addons to compile).
- * One connection per process, WAL mode, versioned migrations.
- * `process.getBuiltinModule` keeps the bundler from trying to resolve the builtin.
+ * One SQL dialect (Postgres), two engines:
+ *  - DATABASE_URL set  -> `pg` against your Postgres (Supabase in production)
+ *  - otherwise         -> PGlite, a real Postgres compiled to WASM, stored under DATA_DIR/pgdata (local dev, tests)
+ * Queries are written with `?` placeholders and converted to `$n` here.
  */
 
-const DATA_DIR = process.env.DATA_DIR || path.join(process.cwd(), 'data');
+type Result = { rows: Record<string, unknown>[]; changes: number };
+type Runner = { query(sql: string, params: unknown[]): Promise<Result> };
+type Backend = Runner & { transaction<T>(fn: (r: Runner) => Promise<T>): Promise<T> };
 
-const MIGRATIONS: string[] = [
-  /* 1 */ `
-  CREATE TABLE users (
-    id TEXT PRIMARY KEY,
-    email TEXT NOT NULL UNIQUE COLLATE NOCASE,
-    username TEXT NOT NULL UNIQUE COLLATE NOCASE,
-    password_hash TEXT NOT NULL,
-    role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user','admin')),
-    roblox_username TEXT,
-    avatar TEXT,
-    balance INTEGER NOT NULL DEFAULT 0 CHECK (balance >= 0),
-    banned_at INTEGER,
-    created_at INTEGER NOT NULL
-  );
+const toPg = (sql: string) => {
+  let i = 0;
+  return sql.replace(/\?/g, () => `$${++i}`);
+};
+const num = (v: string) => Number(v);
 
-  CREATE TABLE sessions (
-    id TEXT PRIMARY KEY,
-    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    expires_at INTEGER NOT NULL,
-    created_at INTEGER NOT NULL,
-    user_agent TEXT
-  );
-  CREATE INDEX idx_sessions_user ON sessions(user_id);
-
-  CREATE TABLE creators (
-    id TEXT PRIMARY KEY,
-    user_id TEXT NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
-    slug TEXT NOT NULL UNIQUE COLLATE NOCASE,
-    display_name TEXT NOT NULL,
-    headline TEXT NOT NULL DEFAULT '',
-    bio TEXT NOT NULL DEFAULT '',
-    platform TEXT NOT NULL DEFAULT 'youtube' CHECK (platform IN ('youtube','tiktok','both')),
-    youtube_url TEXT,
-    tiktok_url TEXT,
-    followers INTEGER NOT NULL DEFAULT 0,
-    avg_views INTEGER NOT NULL DEFAULT 0,
-    niches TEXT NOT NULL DEFAULT '[]',
-    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','rejected','suspended')),
-    review_note TEXT,
-    is_listed INTEGER NOT NULL DEFAULT 1,
-    completed_orders INTEGER NOT NULL DEFAULT 0,
-    rating_sum INTEGER NOT NULL DEFAULT 0,
-    rating_count INTEGER NOT NULL DEFAULT 0,
-    created_at INTEGER NOT NULL,
-    approved_at INTEGER
-  );
-  CREATE INDEX idx_creators_status ON creators(status, is_listed);
-
-  CREATE TABLE packages (
-    id TEXT PRIMARY KEY,
-    creator_id TEXT NOT NULL REFERENCES creators(id) ON DELETE CASCADE,
-    title TEXT NOT NULL,
-    description TEXT NOT NULL DEFAULT '',
-    price INTEGER NOT NULL CHECK (price >= 50),
-    delivery_days INTEGER NOT NULL CHECK (delivery_days BETWEEN 1 AND 60),
-    revisions INTEGER NOT NULL DEFAULT 1 CHECK (revisions BETWEEN 0 AND 10),
-    active INTEGER NOT NULL DEFAULT 1,
-    position INTEGER NOT NULL DEFAULT 0,
-    created_at INTEGER NOT NULL
-  );
-  CREATE INDEX idx_packages_creator ON packages(creator_id);
-
-  CREATE TABLE orders (
-    id TEXT PRIMARY KEY,
-    buyer_id TEXT NOT NULL REFERENCES users(id),
-    creator_id TEXT NOT NULL REFERENCES creators(id),
-    seller_user_id TEXT NOT NULL REFERENCES users(id),
-    package_id TEXT REFERENCES packages(id) ON DELETE SET NULL,
-    package_title TEXT NOT NULL,
-    price INTEGER NOT NULL,
-    fee INTEGER NOT NULL,
-    delivery_days INTEGER NOT NULL,
-    revisions_allowed INTEGER NOT NULL DEFAULT 1,
-    revisions_used INTEGER NOT NULL DEFAULT 0,
-    game_name TEXT NOT NULL,
-    game_url TEXT NOT NULL,
-    brief TEXT NOT NULL DEFAULT '',
-    status TEXT NOT NULL CHECK (status IN ('pending','active','delivered','completed','disputed','cancelled','declined','refunded')),
-    respond_by INTEGER,
-    due_at INTEGER,
-    delivery_url TEXT,
-    delivery_note TEXT,
-    delivered_at INTEGER,
-    auto_release_at INTEGER,
-    dispute_reason TEXT,
-    dispute_by TEXT,
-    dispute_note TEXT,
-    closed_reason TEXT,
-    created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL,
-    completed_at INTEGER
-  );
-  CREATE INDEX idx_orders_buyer ON orders(buyer_id, created_at DESC);
-  CREATE INDEX idx_orders_seller ON orders(seller_user_id, created_at DESC);
-  CREATE INDEX idx_orders_status ON orders(status);
-
-  CREATE TABLE messages (
-    id TEXT PRIMARY KEY,
-    order_id TEXT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
-    sender_id TEXT REFERENCES users(id),
-    kind TEXT NOT NULL DEFAULT 'user' CHECK (kind IN ('user','system')),
-    body TEXT NOT NULL DEFAULT '',
-    file_path TEXT,
-    file_name TEXT,
-    file_type TEXT,
-    created_at INTEGER NOT NULL
-  );
-  CREATE INDEX idx_messages_order ON messages(order_id, created_at);
-
-  CREATE TABLE transactions (
-    id TEXT PRIMARY KEY,
-    user_id TEXT NOT NULL REFERENCES users(id),
-    kind TEXT NOT NULL,
-    amount INTEGER NOT NULL,
-    balance_after INTEGER NOT NULL,
-    order_id TEXT REFERENCES orders(id),
-    note TEXT,
-    created_at INTEGER NOT NULL
-  );
-  CREATE INDEX idx_tx_user ON transactions(user_id, created_at DESC);
-
-  CREATE TABLE payment_requests (
-    id TEXT PRIMARY KEY,
-    user_id TEXT NOT NULL REFERENCES users(id),
-    kind TEXT NOT NULL CHECK (kind IN ('deposit','withdrawal')),
-    amount INTEGER NOT NULL CHECK (amount > 0),
-    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','completed','rejected')),
-    gamepass_url TEXT,
-    reference TEXT,
-    admin_note TEXT,
-    created_at INTEGER NOT NULL,
-    resolved_at INTEGER
-  );
-  CREATE INDEX idx_pay_status ON payment_requests(status, created_at);
-
-  CREATE TABLE reviews (
-    id TEXT PRIMARY KEY,
-    order_id TEXT NOT NULL UNIQUE REFERENCES orders(id) ON DELETE CASCADE,
-    buyer_id TEXT NOT NULL REFERENCES users(id),
-    creator_id TEXT NOT NULL REFERENCES creators(id) ON DELETE CASCADE,
-    rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
-    body TEXT NOT NULL DEFAULT '',
-    created_at INTEGER NOT NULL
-  );
-  CREATE INDEX idx_reviews_creator ON reviews(creator_id, created_at DESC);
-
-  CREATE TABLE notifications (
-    id TEXT PRIMARY KEY,
-    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    title TEXT NOT NULL,
-    body TEXT NOT NULL DEFAULT '',
-    href TEXT,
-    read_at INTEGER,
-    created_at INTEGER NOT NULL
-  );
-  CREATE INDEX idx_notif_user ON notifications(user_id, read_at, created_at DESC);
-
-  CREATE TABLE audit_log (
-    id TEXT PRIMARY KEY,
-    actor_id TEXT REFERENCES users(id),
-    action TEXT NOT NULL,
-    target TEXT,
-    meta TEXT,
-    created_at INTEGER NOT NULL
-  );
-
-  CREATE TABLE rate_limits (
-    key TEXT PRIMARY KEY,
-    count INTEGER NOT NULL,
-    reset_at INTEGER NOT NULL
-  );
-  `,
-];
-
-type G = typeof globalThis & { __db?: DatabaseSync };
-
-function open(): DatabaseSync {
-  const sqlite = process.getBuiltinModule('node:sqlite') as typeof import('node:sqlite');
-  const file = process.env.DATABASE_FILE || path.join(DATA_DIR, 'creatorlink.db');
-  if (file !== ':memory:') fs.mkdirSync(path.dirname(file), { recursive: true });
-  const db = new sqlite.DatabaseSync(file);
-  db.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000; PRAGMA synchronous = NORMAL;');
-  migrate(db);
-  return db;
+async function openPg(url: string): Promise<Backend> {
+  const pg = await import('pg');
+  pg.types.setTypeParser(20, num); // int8 (COUNT, BIGINT) -> number
+  pg.types.setTypeParser(1700, num); // numeric (SUM of ints, averages) -> number
+  const u = new URL(url);
+  const local = ['localhost', '127.0.0.1', '::1'].includes(u.hostname);
+  const sslMode = process.env.DATABASE_SSL ?? (local ? 'disable' : 'require');
+  u.searchParams.delete('sslmode');
+  const pool = new pg.Pool({
+    connectionString: u.toString(),
+    max: Number(process.env.DATABASE_POOL_MAX ?? 5),
+    idleTimeoutMillis: 20_000,
+    // Supabase's pooler presents a certificate chain Node doesn't trust by default. `require` encrypts the
+    // connection; set DATABASE_SSL=verify and DATABASE_CA to also verify the server certificate.
+    ssl: sslMode === 'disable' ? false : sslMode === 'verify' ? { ca: process.env.DATABASE_CA } : { rejectUnauthorized: false },
+  });
+  const wrap = (c: { query: (s: string, p: unknown[]) => Promise<{ rows: Record<string, unknown>[]; rowCount: number | null }> }): Runner => ({
+    async query(sql, params) {
+      const r = await c.query(toPg(sql), params);
+      return { rows: r.rows, changes: r.rowCount ?? 0 };
+    },
+  });
+  return {
+    ...wrap(pool as never),
+    async transaction(fn) {
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        const out = await fn(wrap(client as never));
+        await client.query('COMMIT');
+        return out;
+      } catch (e) {
+        await client.query('ROLLBACK').catch(() => {});
+        throw e;
+      } finally {
+        client.release();
+      }
+    },
+  };
 }
 
-function migrate(db: DatabaseSync) {
-  const row = db.prepare('PRAGMA user_version').get() as { user_version: number };
-  for (let v = row.user_version; v < MIGRATIONS.length; v++) {
-    db.exec('BEGIN IMMEDIATE');
-    try {
-      db.exec(MIGRATIONS[v]);
-      db.exec(`PRAGMA user_version = ${v + 1}`);
-      db.exec('COMMIT');
-    } catch (e) {
-      db.exec('ROLLBACK');
-      throw e;
+async function openPglite(): Promise<Backend> {
+  const { PGlite } = await import('@electric-sql/pglite');
+  const file = process.env.DATABASE_FILE;
+  const dir = file === ':memory:' ? undefined : file || path.join(process.env.DATA_DIR || path.join(process.cwd(), 'data'), 'pgdata');
+  if (dir) fs.mkdirSync(path.dirname(dir), { recursive: true });
+  const lite = new PGlite(dir, { parsers: { 20: num, 1700: num } });
+  await lite.waitReady;
+  const wrap = (c: { query: (s: string, p: unknown[]) => Promise<{ rows: unknown[]; affectedRows?: number }> }): Runner => ({
+    async query(sql, params) {
+      const r = await c.query(toPg(sql), params);
+      return { rows: r.rows as Record<string, unknown>[], changes: r.affectedRows ?? 0 };
+    },
+  });
+  return {
+    ...wrap(lite as never),
+    transaction: (fn) => lite.transaction((t) => fn(wrap(t as never))),
+  };
+}
+
+async function migrate(b: Backend) {
+  await b.transaction(async (r) => {
+    await r.query('SELECT pg_advisory_xact_lock(727274)', []); // serialise concurrent cold starts
+    await r.query('CREATE TABLE IF NOT EXISTS schema_migrations (version INTEGER PRIMARY KEY, applied_at BIGINT NOT NULL)', []);
+    await r.query('ALTER TABLE schema_migrations ENABLE ROW LEVEL SECURITY', []);
+    const done = new Set((await r.query('SELECT version FROM schema_migrations', [])).rows.map((x) => Number(x.version)));
+    for (let i = 0; i < MIGRATIONS.length; i++) {
+      if (done.has(i + 1)) continue;
+      for (const stmt of MIGRATIONS[i].split(/;\s*\n/).map((s) => s.trim()).filter(Boolean)) await r.query(stmt, []);
+      await r.query('INSERT INTO schema_migrations (version, applied_at) VALUES (?, ?)', [i + 1, Date.now()]);
     }
-  }
+  });
 }
 
-export function getDb(): DatabaseSync {
+type G = typeof globalThis & { __dbp?: Promise<Backend> };
+function backend(): Promise<Backend> {
   const g = globalThis as G;
-  if (!g.__db) g.__db = open();
-  return g.__db;
-}
-
-export const db = new Proxy({} as DatabaseSync, {
-  get(_t, prop) {
-    const real = getDb() as unknown as Record<string | symbol, unknown>;
-    const v = real[prop];
-    return typeof v === 'function' ? (v as (...a: unknown[]) => unknown).bind(real) : v;
-  },
-});
-
-/** Run `fn` inside an immediate (write-locking) transaction. Nested calls join the outer one. */
-let depth = 0;
-export function tx<T>(fn: () => T): T {
-  if (depth > 0) return fn();
-  const d = getDb();
-  d.exec('BEGIN IMMEDIATE');
-  depth++;
-  try {
-    const out = fn();
-    d.exec('COMMIT');
-    return out;
-  } catch (e) {
-    d.exec('ROLLBACK');
-    throw e;
-  } finally {
-    depth--;
+  if (!g.__dbp) {
+    g.__dbp = (async () => {
+      const b = process.env.DATABASE_URL ? await openPg(process.env.DATABASE_URL) : await openPglite();
+      await migrate(b);
+      return b;
+    })();
+    g.__dbp.catch(() => { g.__dbp = undefined; });
   }
+  return g.__dbp;
 }
 
-type SqlValue = string | number | bigint | null | Uint8Array;
-export function all<T = Record<string, unknown>>(sql: string, ...params: SqlValue[]): T[] {
-  // node:sqlite returns null-prototype rows; copy to plain objects so they can cross the RSC boundary.
-  return (getDb().prepare(sql) as StatementSync).all(...params).map((r) => ({ ...r })) as T[];
+const als = new AsyncLocalStorage<Runner>();
+const runner = async (): Promise<Runner> => als.getStore() ?? (await backend());
+
+type Param = string | number | null;
+
+export async function all<T = Record<string, unknown>>(sql: string, ...params: Param[]): Promise<T[]> {
+  return (await (await runner()).query(sql, params)).rows as T[];
 }
-export function get<T = Record<string, unknown>>(sql: string, ...params: SqlValue[]): T | undefined {
-  const r = (getDb().prepare(sql) as StatementSync).get(...params);
-  return r ? ({ ...r } as T) : undefined;
+export async function get<T = Record<string, unknown>>(sql: string, ...params: Param[]): Promise<T | undefined> {
+  return (await all<T>(sql, ...params))[0];
 }
-export function run(sql: string, ...params: SqlValue[]) {
-  return (getDb().prepare(sql) as StatementSync).run(...params);
+export async function run(sql: string, ...params: Param[]): Promise<{ changes: number }> {
+  const r = await (await runner()).query(sql, params);
+  return { changes: r.changes };
+}
+
+/** Run `fn` in one database transaction. Nested calls join the outer transaction. */
+export async function tx<T>(fn: () => Promise<T>): Promise<T> {
+  if (als.getStore()) return fn();
+  const b = await backend();
+  return b.transaction((r) => als.run(r, fn));
+}
+
+export async function closeDb() {
+  const g = globalThis as G;
+  g.__dbp = undefined;
 }
 
 export const now = () => Date.now();
-export const uid = () => randomBytes(12).toString('base64url');
+
+let seq = 0;
+/** Time-ordered unique id: sorts by creation time, so `ORDER BY created_at, id` is a stable tiebreak. */
+export function uid() {
+  seq = (seq + 1) % 1296;
+  return Date.now().toString(36).padStart(9, '0') + seq.toString(36).padStart(2, '0') + randomBytes(7).toString('base64url');
+}

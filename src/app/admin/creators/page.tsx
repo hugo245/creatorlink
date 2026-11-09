@@ -6,8 +6,8 @@ import { CreatorReviewForm } from '../forms';
 
 type Row = { id: string; slug: string; display_name: string; username: string; platform: 'youtube' | 'tiktok' | 'both'; youtube_url: string | null; tiktok_url: string | null; followers: number; avg_views: number; headline: string; bio: string; niches: string; status: string; review_note: string | null; created_at: number };
 
-export default function AdminCreators() {
-  const rows = all<Row>(`SELECT c.*, u.username FROM creators c JOIN users u ON u.id = c.user_id ORDER BY CASE c.status WHEN 'pending' THEN 0 WHEN 'approved' THEN 1 ELSE 2 END, c.created_at DESC`);
+export default async function AdminCreators() {
+  const rows = await all<Row>(`SELECT c.*, u.username FROM creators c JOIN users u ON u.id = c.user_id ORDER BY CASE c.status WHEN 'pending' THEN 0 WHEN 'approved' THEN 1 ELSE 2 END, c.created_at DESC`);
   return (
     <>
       <PageHeader title="Creators" sub="Review applications. Open the channel links and check the audience numbers before approving." />

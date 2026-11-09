@@ -15,14 +15,14 @@ export const metadata: Metadata = { title: { default: 'Dashboard', template: '%s
 export const dynamic = 'force-dynamic';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  sweepOrders();
+  await sweepOrders();
   const user = await requireUser();
-  const notifs = all<Notif>('SELECT id, title, body, href, read_at, created_at FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 12', user.id);
-  const unread = get<{ n: number }>('SELECT COUNT(*) n FROM notifications WHERE user_id = ? AND read_at IS NULL', user.id)!.n;
-  const needsAction = get<{ n: number }>(
+  const notifs = await all<Notif>('SELECT id, title, body, href, read_at, created_at FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 12', user.id);
+  const unread = (await get<{ n: number }>('SELECT COUNT(*) n FROM notifications WHERE user_id = ? AND read_at IS NULL', user.id))!.n;
+  const needsAction = (await get<{ n: number }>(
     `SELECT COUNT(*) n FROM orders WHERE (seller_user_id = ? AND status = 'pending') OR (buyer_id = ? AND status = 'delivered')`,
     user.id, user.id,
-  )!.n;
+  ))!.n;
 
   const items: NavItem[] = [
     { href: '/app', label: 'Overview', icon: 'home' },

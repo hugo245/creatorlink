@@ -7,8 +7,8 @@ import { AdjustForm, BanButton } from '../forms';
 export default async function AdminUsers({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const me = await requireAdmin();
   const q = ((await searchParams).q ?? '').replace(/[%_]/g, '').slice(0, 40);
-  const rows = all<{ id: string; username: string; email: string; role: string; balance: number; banned_at: number | null; created_at: number }>(
-    `SELECT id, username, email, role, balance, banned_at, created_at FROM users WHERE username LIKE ? OR email LIKE ? ORDER BY created_at DESC LIMIT 100`, `%${q}%`, `%${q}%`,
+  const rows = await all<{ id: string; username: string; email: string; role: string; balance: number; banned_at: number | null; created_at: number }>(
+    `SELECT id, username, email, role, balance, banned_at, created_at FROM users WHERE lower(username) LIKE ? OR lower(email) LIKE ? ORDER BY created_at DESC LIMIT 100`, `%${q.toLowerCase()}%`, `%${q.toLowerCase()}%`,
   );
   return (
     <>

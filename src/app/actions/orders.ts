@@ -14,9 +14,9 @@ import type { ActionState } from '@/components/form';
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? '');
 
 /** Run a state transition and turn AppErrors into form feedback. */
-async function guard(path: string, fn: () => void, message: string): Promise<ActionState> {
+async function guard(path: string, fn: () => Promise<unknown>, message: string): Promise<ActionState> {
   try {
-    fn();
+    await fn();
   } catch (e) {
     if (e instanceof AppError) return { error: e.message };
     throw e;
@@ -31,10 +31,10 @@ export async function placeOrder(_: ActionState, fd: FormData): Promise<ActionSt
   const raw = { packageId: str(fd, 'packageId'), gameName: str(fd, 'gameName'), gameUrl: str(fd, 'gameUrl'), brief: str(fd, 'brief') };
   const parsed = orderSchema.safeParse(raw);
   if (!parsed.success) return { fields: zodErrors(parsed.error), values: raw };
-  if (!hit(`order:${user.id}`, 10, 60 * 60_000)) return { error: 'You are placing orders too quickly. Try again in a bit.', values: raw };
+  if (!(await hit(`order:${user.id}`, 10, 60 * 60_000))) return { error: 'You are placing orders too quickly. Try again in a bit.', values: raw };
   let id: string;
   try {
-    id = orders.createOrder({ buyerId: user.id, ...parsed.data });
+    id = await orders.createOrder({ buyerId: user.id, ...parsed.data });
   } catch (e) {
     if (e instanceof AppError) return { error: e.message, values: raw };
     throw e;
@@ -95,7 +95,7 @@ export async function leaveReview(orderId: string, _: ActionState, fd: FormData)
 
 export async function sendMessage(orderId: string, _: ActionState, fd: FormData): Promise<ActionState> {
   const u = await requireUser();
-  const o = orders.getOrder(orderId);
+  const o = await orders.getOrder(orderId);
   if (!o || (o.buyer_id !== u.id && o.seller_user_id !== u.id && u.role !== 'admin')) return { error: 'Conversation not found.' };
   if (['completed', 'cancelled', 'declined', 'refunded'].includes(o.status) && now() - (o.completed_at ?? o.updated_at) > 7 * 86_400_000) {
     return { error: 'This conversation is closed.' };
@@ -104,7 +104,7 @@ export async function sendMessage(orderId: string, _: ActionState, fd: FormData)
   const file = fd.get('file');
   const hasFile = file instanceof File && file.size > 0;
   if (!body && !hasFile) return { error: 'Write a message or attach a file.' };
-  if (!hit(`msg:${u.id}`, 40, 60_000)) return { error: 'Slow down a little.' };
+  if (!(await hit(`msg:${u.id}`, 40, 60_000))) return { error: 'Slow down a little.' };
 
   let att: { path: string; mime: string } | null = null;
   if (hasFile) {
@@ -115,18 +115,18 @@ export async function sendMessage(orderId: string, _: ActionState, fd: FormData)
       throw e;
     }
   }
-  run(
+  await run(
     "INSERT INTO messages (id, order_id, sender_id, kind, body, file_path, file_name, file_type, created_at) VALUES (?,?,?,'user',?,?,?,?,?)",
     uid(), orderId, u.id, body, att?.path ?? null, hasFile ? (file as File).name.slice(0, 120) : null, att?.mime ?? null, now(),
   );
   const other = u.id === o.buyer_id ? o.seller_user_id : o.buyer_id;
   // Collapse repeated message pings: only one unread "new message" per order.
-  const exists = get(
-    "SELECT 1 FROM notifications WHERE user_id = ? AND read_at IS NULL AND href = ? AND title = 'New message'",
+  const exists = await get(
+    "SELECT 1 AS x FROM notifications WHERE user_id = ? AND read_at IS NULL AND href = ? AND title = 'New message'",
     other, `/app/orders/${orderId}`,
   );
   if (!exists && other !== u.id) {
-    run(
+    await run(
       "INSERT INTO notifications (id, user_id, title, body, href, created_at) VALUES (?,?,'New message',?,?,?)",
       uid(), other, `${u.username}: ${(body || 'Sent a file').slice(0, 80)}`, `/app/orders/${orderId}`, now(),
     );

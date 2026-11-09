@@ -4,8 +4,8 @@ import { PageHeader, Robux } from '@/components/ui';
 import { dateTime } from '@/lib/format';
 import { DisputeForm } from '../forms';
 
-export default function AdminDisputes() {
-  const rows = all<{ id: string; game_name: string; package_title: string; price: number; dispute_reason: string; buyer: string; creator: string; opener: string; updated_at: number }>(
+export default async function AdminDisputes() {
+  const rows = await all<{ id: string; game_name: string; package_title: string; price: number; dispute_reason: string; buyer: string; creator: string; opener: string; updated_at: number }>(
     `SELECT o.id, o.game_name, o.package_title, o.price, o.dispute_reason, o.updated_at, b.username buyer, c.display_name creator,
             (SELECT username FROM users WHERE id = o.dispute_by) opener
        FROM orders o JOIN users b ON b.id = o.buyer_id JOIN creators c ON c.id = o.creator_id

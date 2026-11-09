@@ -17,9 +17,9 @@ const LABEL: Record<string, string> = {
 
 export default async function WalletPage() {
   const user = await requireUser();
-  const txs = all<Tx>('SELECT * FROM transactions WHERE user_id = ? ORDER BY created_at DESC, rowid DESC LIMIT 50', user.id);
-  const pending = all<PaymentRequest>("SELECT * FROM payment_requests WHERE user_id = ? AND status = 'pending' ORDER BY created_at DESC", user.id);
-  const escrow = get<{ n: number }>("SELECT COALESCE(SUM(price),0) n FROM orders WHERE buyer_id = ? AND status IN ('pending','active','delivered','disputed')", user.id)!.n;
+  const txs = await all<Tx>('SELECT * FROM transactions WHERE user_id = ? ORDER BY created_at DESC, id DESC LIMIT 50', user.id);
+  const pending = await all<PaymentRequest>("SELECT * FROM payment_requests WHERE user_id = ? AND status = 'pending' ORDER BY created_at DESC", user.id);
+  const escrow = (await get<{ n: number }>("SELECT COALESCE(SUM(price),0) n FROM orders WHERE buyer_id = ? AND status IN ('pending','active','delivered','disputed')", user.id))!.n;
 
   return (
     <>

@@ -10,11 +10,11 @@ export const dynamic = 'force-dynamic';
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   await requireAdmin();
-  const counts = get<{ c: number; d: number; p: number }>(
+  const counts = (await get<{ c: number; d: number; p: number }>(
     `SELECT (SELECT COUNT(*) FROM creators WHERE status = 'pending') c,
             (SELECT COUNT(*) FROM orders WHERE status = 'disputed') d,
             (SELECT COUNT(*) FROM payment_requests WHERE status = 'pending') p`,
-  )!;
+  ))!;
   return (
     <div className="min-h-screen">
       <header className="border-b border-line bg-ink text-paper">

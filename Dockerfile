@@ -15,6 +15,5 @@ COPY --from=build /app/package.json ./package.json
 COPY --from=build /app/next.config.mjs ./next.config.mjs
 RUN mkdir -p /data && chown -R node:node /data
 USER node
-VOLUME /data
 EXPOSE 3000
 CMD ["npx", "next", "start"]

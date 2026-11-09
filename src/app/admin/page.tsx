@@ -1,8 +1,8 @@
 import { get } from '@/lib/db';
 import { PageHeader, Robux } from '@/components/ui';
 
-export default function AdminHome() {
-  const s = get<Record<string, number>>(
+export default async function AdminHome() {
+  const s = (await get<Record<string, number>>(
     `SELECT
       (SELECT COUNT(*) FROM users) users,
       (SELECT COUNT(*) FROM creators WHERE status = 'approved') creators,
@@ -12,7 +12,7 @@ export default function AdminHome() {
       COALESCE((SELECT SUM(fee) FROM orders WHERE status = 'completed'), 0) fees,
       COALESCE((SELECT SUM(price) FROM orders WHERE status IN ('pending','active','delivered','disputed')), 0) escrow,
       COALESCE((SELECT SUM(balance) FROM users), 0) balances`,
-  )!;
+  ))!;
   const cards: [string, React.ReactNode][] = [
     ['Users', s.users.toLocaleString()], ['Approved creators', s.creators.toLocaleString()], ['Orders (open / all)', `${s.open_orders} / ${s.orders}`],
     ['Completed volume', <Robux key="g" n={s.gmv} />], ['Platform fees earned', <Robux key="f" n={s.fees} />],

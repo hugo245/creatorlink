@@ -1,5 +1,5 @@
 import { all, get, run, tx, now, uid } from './db';
-import { AppError, audit, notify } from './ledger';
+import { AppError, audit, notify, notifyAdmins } from './ledger';
 import { slugify } from './validators';
 
 export type Creator = {
@@ -65,12 +65,12 @@ export type Filters = {
   perPage?: number;
 };
 
-export function listCreators(f: Filters = {}) {
+export async function listCreators(f: Filters = {}) {
   const where = ["c.status = 'approved'", 'c.is_listed = 1', 'EXISTS (SELECT 1 FROM packages p WHERE p.creator_id = c.id AND p.active = 1)'];
   const args: (string | number)[] = [];
   if (f.q) {
-    where.push('(c.display_name LIKE ? OR c.headline LIKE ? OR c.bio LIKE ? OR c.niches LIKE ?)');
-    const like = `%${f.q.replace(/[%_]/g, '')}%`;
+    where.push('(lower(c.display_name) LIKE ? OR lower(c.headline) LIKE ? OR lower(c.bio) LIKE ? OR lower(c.niches) LIKE ?)');
+    const like = `%${f.q.replace(/[%_\\]/g, '').toLowerCase()}%`;
     args.push(like, like, like, like);
   }
   if (f.platform) {
@@ -91,27 +91,27 @@ export function listCreators(f: Filters = {}) {
       rating: '(CASE WHEN c.rating_count = 0 THEN 0 ELSE 1.0 * c.rating_sum / c.rating_count END) DESC, c.rating_count DESC',
       price_asc: 'min_price ASC',
       price_desc: 'min_price DESC',
-      newest: 'c.approved_at DESC',
+      newest: 'c.approved_at DESC NULLS LAST',
       audience: 'c.followers DESC',
     }[f.sort ?? 'popular'] + ', c.created_at DESC';
   const perPage = f.perPage ?? 12;
   const page = Math.max(1, f.page ?? 1);
-  const total = get<{ n: number }>(`SELECT COUNT(*) n FROM creators c WHERE ${where.join(' AND ')}`, ...args)!.n;
-  const rows = all<Raw>(`${SELECT} WHERE ${where.join(' AND ')} ORDER BY ${order} LIMIT ? OFFSET ?`, ...args, perPage, (page - 1) * perPage);
+  const total = (await get<{ n: number }>(`SELECT COUNT(*) AS n FROM creators c WHERE ${where.join(' AND ')}`, ...args))!.n;
+  const rows = await all<Raw>(`${SELECT} WHERE ${where.join(' AND ')} ORDER BY ${order} LIMIT ? OFFSET ?`, ...args, perPage, (page - 1) * perPage);
   return { creators: rows.map(parse), total, page, perPage, pages: Math.max(1, Math.ceil(total / perPage)) };
 }
 
-export function featuredCreators(n = 4) {
-  return listCreators({ sort: 'popular', perPage: n }).creators;
+export async function featuredCreators(n = 4) {
+  return (await listCreators({ sort: 'popular', perPage: n })).creators;
 }
 
-export function getCreatorBySlug(slug: string) {
-  const r = get<Raw>(`${SELECT} WHERE c.slug = ?`, slug);
+export async function getCreatorBySlug(slug: string) {
+  const r = await get<Raw>(`${SELECT} WHERE lower(c.slug) = lower(?)`, slug);
   return r ? parse(r) : undefined;
 }
 
-export function getCreatorByUser(userId: string) {
-  const r = get<Raw>(`${SELECT} WHERE c.user_id = ?`, userId);
+export async function getCreatorByUser(userId: string) {
+  const r = await get<Raw>(`${SELECT} WHERE c.user_id = ?`, userId);
   return r ? parse(r) : undefined;
 }
 
@@ -136,10 +136,10 @@ export function getReviews(creatorId: string, limit = 20) {
   );
 }
 
-export function uniqueSlug(base: string, ignoreCreatorId?: string) {
+export async function uniqueSlug(base: string, ignoreCreatorId?: string) {
   let slug = slugify(base);
   let i = 1;
-  while (get('SELECT 1 FROM creators WHERE slug = ? AND id != ?', slug, ignoreCreatorId ?? '')) {
+  while (await get('SELECT 1 AS x FROM creators WHERE lower(slug) = lower(?) AND id != ?', slug, ignoreCreatorId ?? '')) {
     slug = `${slugify(base).slice(0, 28)}-${++i}`;
   }
   return slug;
@@ -152,65 +152,63 @@ export type Application = {
 
 /** Create or update the creator profile. Applications start as `pending` and need admin approval. */
 export function saveCreatorProfile(userId: string, a: Application) {
-  return tx(() => {
-    const existing = get<{ id: string; status: string }>('SELECT id, status FROM creators WHERE user_id = ?', userId);
+  return tx(async () => {
+    const existing = await get<{ id: string; status: string }>('SELECT id, status FROM creators WHERE user_id = ?', userId);
     const yt = a.platform !== 'tiktok' ? a.youtubeUrl || null : null;
     const tt = a.platform !== 'youtube' ? a.tiktokUrl || null : null;
     if (existing) {
       if (existing.status === 'suspended') throw new AppError('This creator account is suspended. Contact support.');
       const statusReset = existing.status === 'rejected' ? ", status = 'pending', review_note = NULL" : '';
-      run(
+      await run(
         `UPDATE creators SET display_name=?, headline=?, bio=?, platform=?, youtube_url=?, tiktok_url=?, followers=?, avg_views=?, niches=?${statusReset} WHERE id=?`,
         a.displayName, a.headline, a.bio, a.platform, yt, tt, a.followers, a.avgViews, JSON.stringify(a.niches), existing.id,
       );
       return { id: existing.id, created: false };
     }
     const id = uid();
-    run(
+    await run(
       `INSERT INTO creators (id,user_id,slug,display_name,headline,bio,platform,youtube_url,tiktok_url,followers,avg_views,niches,status,created_at)
        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,'pending',?)`,
-      id, userId, uniqueSlug(a.displayName), a.displayName, a.headline, a.bio, a.platform, yt, tt,
+      id, userId, await uniqueSlug(a.displayName), a.displayName, a.headline, a.bio, a.platform, yt, tt,
       a.followers, a.avgViews, JSON.stringify(a.niches), now(),
     );
-    for (const adm of all<{ id: string }>("SELECT id FROM users WHERE role = 'admin'")) {
-      notify(adm.id, 'New creator application', a.displayName, '/admin/creators');
-    }
+    await notifyAdmins('New creator application', a.displayName, '/admin/creators');
     return { id, created: true };
   });
 }
 
 export function reviewCreator(adminId: string, creatorId: string, decision: 'approve' | 'reject' | 'suspend' | 'reinstate', note: string) {
-  tx(() => {
-    const c = get<{ user_id: string; slug: string; display_name: string; status: string }>('SELECT user_id, slug, display_name, status FROM creators WHERE id = ?', creatorId);
+  return tx(async () => {
+    const c = await get<{ user_id: string; slug: string; display_name: string; status: string }>('SELECT user_id, slug, display_name, status FROM creators WHERE id = ?', creatorId);
     if (!c) throw new AppError('Creator not found.');
     const status = decision === 'approve' || decision === 'reinstate' ? 'approved' : decision === 'reject' ? 'rejected' : 'suspended';
-    run('UPDATE creators SET status = ?, review_note = ?, approved_at = COALESCE(approved_at, ?) WHERE id = ?', status, note || null, status === 'approved' ? now() : null, creatorId);
-    audit(adminId, `creator.${decision}`, creatorId, { note });
+    await run('UPDATE creators SET status = ?, review_note = ?, approved_at = COALESCE(approved_at, ?) WHERE id = ?', status, note || null, status === 'approved' ? now() : null, creatorId);
+    await audit(adminId, `creator.${decision}`, creatorId, { note });
     const msg: Record<string, [string, string]> = {
       approve: ['You’re approved', 'Your creator profile is live in the marketplace.'],
       reinstate: ['Creator account reinstated', 'Your listing is live again.'],
       reject: ['Application not approved', note || 'Update your profile and re-apply.'],
       suspend: ['Creator account suspended', note || 'Contact support for details.'],
     };
-    notify(c.user_id, msg[decision][0], msg[decision][1], status === 'approved' ? `/creators/${c.slug}` : '/app/creator');
+    await notify(c.user_id, msg[decision][0], msg[decision][1], status === 'approved' ? `/creators/${c.slug}` : '/app/creator');
   });
 }
 
 /* ------------------------------------------------------------ packages CRUD */
 
 export function savePackage(creatorId: string, id: string | null, p: { title: string; description: string; price: number; deliveryDays: number; revisions: number }) {
-  tx(() => {
+  return tx(async () => {
     if (id) {
-      const r = run(
+      const r = await run(
         'UPDATE packages SET title=?, description=?, price=?, delivery_days=?, revisions=? WHERE id=? AND creator_id=?',
         p.title, p.description, p.price, p.deliveryDays, p.revisions, id, creatorId,
       );
       if (!r.changes) throw new AppError('Package not found.');
       return;
     }
-    const count = get<{ n: number }>('SELECT COUNT(*) n FROM packages WHERE creator_id = ? AND active = 1', creatorId)!.n;
+    const count = (await get<{ n: number }>('SELECT COUNT(*) AS n FROM packages WHERE creator_id = ? AND active = 1', creatorId))!.n;
     if (count >= 6) throw new AppError('You can have up to 6 active packages.');
-    run(
+    await run(
       'INSERT INTO packages (id,creator_id,title,description,price,delivery_days,revisions,position,created_at) VALUES (?,?,?,?,?,?,?,?,?)',
       uid(), creatorId, p.title, p.description, p.price, p.deliveryDays, p.revisions, count, now(),
     );
@@ -218,5 +216,5 @@ export function savePackage(creatorId: string, id: string | null, p: { title: st
 }
 
 export function archivePackage(creatorId: string, id: string) {
-  run('UPDATE packages SET active = 0 WHERE id = ? AND creator_id = ?', id, creatorId);
+  return run('UPDATE packages SET active = 0 WHERE id = ? AND creator_id = ?', id, creatorId);
 }

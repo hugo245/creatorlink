@@ -5,8 +5,8 @@ import { PaymentForm } from '../forms';
 
 type Row = { id: string; kind: string; amount: number; status: string; gamepass_url: string | null; reference: string | null; admin_note: string | null; created_at: number; username: string; roblox_username: string | null };
 
-export default function AdminPayments() {
-  const rows = all<Row>(`SELECT p.*, u.username, u.roblox_username FROM payment_requests p JOIN users u ON u.id = p.user_id ORDER BY (p.status = 'pending') DESC, p.created_at DESC LIMIT 100`);
+export default async function AdminPayments() {
+  const rows = await all<Row>(`SELECT p.*, u.username, u.roblox_username FROM payment_requests p JOIN users u ON u.id = p.user_id ORDER BY (p.status = 'pending') DESC, p.created_at DESC LIMIT 100`);
   return (
     <>
       <PageHeader title="Payments" sub="Deposits: confirm the gamepass purchase, then mark done to credit. Withdrawals: buy the gamepass, then mark done." />

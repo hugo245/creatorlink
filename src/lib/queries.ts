@@ -10,8 +10,8 @@ export type OrderRow = Order & {
 const ORDER_SELECT = `
   SELECT o.*, b.username AS buyer_name, b.avatar AS buyer_avatar,
          c.display_name AS creator_name, su.avatar AS creator_avatar, c.slug AS creator_slug,
-         (SELECT body FROM messages m WHERE m.order_id = o.id AND m.kind = 'user' ORDER BY m.created_at DESC LIMIT 1) AS last_message,
-         (SELECT created_at FROM messages m WHERE m.order_id = o.id AND m.kind = 'user' ORDER BY m.created_at DESC LIMIT 1) AS last_message_at
+         (SELECT body FROM messages m WHERE m.order_id = o.id AND m.kind = 'user' ORDER BY m.created_at DESC, m.id DESC LIMIT 1) AS last_message,
+         (SELECT created_at FROM messages m WHERE m.order_id = o.id AND m.kind = 'user' ORDER BY m.created_at DESC, m.id DESC LIMIT 1) AS last_message_at
     FROM orders o
     JOIN users b ON b.id = o.buyer_id
     JOIN creators c ON c.id = o.creator_id
@@ -33,7 +33,7 @@ export type Msg = {
 export function orderMessages(orderId: string) {
   return all<Msg>(
     `SELECT m.id, m.sender_id, u.username AS sender_name, u.avatar AS sender_avatar, m.kind, m.body, m.file_path, m.file_name, m.file_type, m.created_at
-       FROM messages m LEFT JOIN users u ON u.id = m.sender_id WHERE m.order_id = ? ORDER BY m.created_at, m.rowid`,
+       FROM messages m LEFT JOIN users u ON u.id = m.sender_id WHERE m.order_id = ? ORDER BY m.created_at, m.id`,
     orderId,
   );
 }
