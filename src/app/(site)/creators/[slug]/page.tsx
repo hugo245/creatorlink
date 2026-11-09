@@ -4,10 +4,11 @@ import type { Metadata } from 'next';
 import { ArrowUpRight, Clock, RotateCcw, ShieldCheck } from 'lucide-react';
 import { Shell } from '@/components/marketing/shell';
 import { Avatar } from '@/components/avatar';
-import { PlatformIcons, Robux, Stars } from '@/components/ui';
+import { Money, PlatformIcons, Stars, VerifiedBadge } from '@/components/ui';
 import { getCreatorBySlug, getPackages, getReviews } from '@/lib/creators';
 import { getUser } from '@/lib/auth';
 import { compact, plural, rating, timeAgo } from '@/lib/format';
+import { ReportButton } from '@/components/report-button';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,11 +36,12 @@ export default async function CreatorPage({ params }: { params: Promise<{ slug: 
       <div className="container-x grid gap-10 py-10 lg:grid-cols-[1fr_380px] lg:py-14">
         <div className="min-w-0">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
-            <Avatar name={c.display_name} src={c.avatar} size={96} />
+            <Avatar name={c.display_name} src={c.youtube_thumb ?? c.avatar} size={96} />
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <h1 className="font-display text-4xl font-bold tracking-tight">{c.display_name}</h1>
                 <PlatformIcons platform={c.platform} size={20} />
+                {c.verified && <VerifiedBadge />}
               </div>
               <p className="mt-2 max-w-xl text-lg text-ink-2">{c.headline}</p>
               <div className="mt-3 flex flex-wrap gap-1.5">
@@ -63,9 +65,40 @@ export default async function CreatorPage({ params }: { params: Promise<{ slug: 
           <section className="mt-10">
             <h2 className="font-display text-2xl font-bold">About</h2>
             <p className="mt-3 max-w-2xl whitespace-pre-line leading-relaxed text-ink-2">{c.bio}</p>
-            <div className="mt-5 flex flex-wrap gap-3">
-              {c.youtube_url && <a href={c.youtube_url} target="_blank" rel="noopener noreferrer nofollow" className="btn btn-outline btn-sm">YouTube channel <ArrowUpRight size={14} /></a>}
-              {c.tiktok_url && <a href={c.tiktok_url} target="_blank" rel="noopener noreferrer nofollow" className="btn btn-outline btn-sm">TikTok profile <ArrowUpRight size={14} /></a>}
+          </section>
+
+          <section className="mt-10" aria-label="Verified channels">
+            <h2 className="font-display text-2xl font-bold">Verified channels</h2>
+            <p className="mt-1 text-sm text-ink-3">Ownership confirmed by CreatorLink. Numbers are read directly from the platform.</p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              {c.youtube_verified_at && c.youtube_url && (
+                <div className="rounded-2xl border border-line bg-white p-5">
+                  <div className="flex items-center justify-between"><p className="flex items-center gap-2 font-semibold"><PlatformIcons platform="youtube" /> YouTube</p><VerifiedBadge label="Verified" /></div>
+                  <dl className="mt-3 grid grid-cols-3 gap-2 text-sm">
+                    <div><dt className="text-xs text-ink-3">Subscribers</dt><dd className="font-semibold tnum">{c.youtube_subs !== null ? compact(c.youtube_subs) : 'Hidden'}</dd></div>
+                    <div><dt className="text-xs text-ink-3">Avg. views</dt><dd className="font-semibold tnum">{c.youtube_avg_views !== null ? compact(c.youtube_avg_views) : 'n/a'}</dd></div>
+                    <div><dt className="text-xs text-ink-3">Videos</dt><dd className="font-semibold tnum">{c.youtube_video_count !== null ? compact(c.youtube_video_count) : 'n/a'}</dd></div>
+                  </dl>
+                  <div className="mt-3 flex items-center justify-between text-xs text-ink-3">
+                    <span>{c.youtube_synced_at ? `Updated ${timeAgo(c.youtube_synced_at)}` : ''}</span>
+                    <a href={c.youtube_url} target="_blank" rel="noopener noreferrer nofollow" className="inline-flex items-center gap-1 font-semibold text-ink hover:underline">Open channel <ArrowUpRight size={13} /></a>
+                  </div>
+                </div>
+              )}
+              {c.tiktok_verified_at && c.tiktok_url && (
+                <div className="rounded-2xl border border-line bg-white p-5">
+                  <div className="flex items-center justify-between"><p className="flex items-center gap-2 font-semibold"><PlatformIcons platform="tiktok" /> TikTok</p><VerifiedBadge label="Verified" /></div>
+                  <dl className="mt-3 grid grid-cols-3 gap-2 text-sm">
+                    <div><dt className="text-xs text-ink-3">Followers</dt><dd className="font-semibold tnum">{c.tiktok_followers !== null ? compact(c.tiktok_followers) : 'n/a'}</dd></div>
+                    <div><dt className="text-xs text-ink-3">Likes</dt><dd className="font-semibold tnum">{c.tiktok_likes !== null ? compact(c.tiktok_likes) : 'n/a'}</dd></div>
+                    <div><dt className="text-xs text-ink-3">Videos</dt><dd className="font-semibold tnum">{c.tiktok_video_count !== null ? compact(c.tiktok_video_count) : 'n/a'}</dd></div>
+                  </dl>
+                  <div className="mt-3 flex items-center justify-between text-xs text-ink-3">
+                    <span>{c.tiktok_synced_at ? `Updated ${timeAgo(c.tiktok_synced_at)}` : ''}</span>
+                    <a href={c.tiktok_url} target="_blank" rel="noopener noreferrer nofollow" className="inline-flex items-center gap-1 font-semibold text-ink hover:underline">Open profile <ArrowUpRight size={13} /></a>
+                  </div>
+                </div>
+              )}
             </div>
           </section>
 
@@ -107,7 +140,7 @@ export default async function CreatorPage({ params }: { params: Promise<{ slug: 
                 <li key={p.id} className="rounded-xl border border-line p-4">
                   <div className="flex items-start justify-between gap-3">
                     <h3 className="font-semibold leading-snug">{p.title}</h3>
-                    <Robux n={p.price} className="font-display text-lg font-bold" />
+                    <Money n={p.price} c={p.currency} className="font-display text-lg font-bold" />
                   </div>
                   {p.description && <p className="mt-1.5 text-sm leading-snug text-ink-3">{p.description}</p>}
                   <p className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs font-medium text-ink-2">
@@ -124,6 +157,7 @@ export default async function CreatorPage({ params }: { params: Promise<{ slug: 
             </ul>
             <p className="flex items-center gap-2 px-4 pb-4 pt-1 text-xs text-ink-3"><ShieldCheck size={14} className="shrink-0 text-moss" /> Held in escrow until you approve the delivery.</p>
           </div>
+          {user && !own && <div className="mt-4 text-center"><ReportButton targetType="creator" targetId={c.id} label="Report this profile" /></div>}
         </aside>
       </div>
     </Shell>

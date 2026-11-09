@@ -80,43 +80,43 @@ export const passwordSchema = z.object({
   next: z.string().min(8, 'New password must be at least 8 characters.').max(200),
 });
 
-export const creatorApplySchema = z.object({
-  displayName: text(2, 40, 'Display name'),
-  platform: z.enum(['youtube', 'tiktok', 'both']),
-  youtubeUrl: z.string().trim().max(300).optional().default(''),
-  tiktokUrl: z.string().trim().max(300).optional().default(''),
-  followers: z.coerce.number().int().min(0, 'Enter your follower count.').max(500_000_000),
-  avgViews: z.coerce.number().int().min(0).max(500_000_000),
+export const channelLinkSchema = z.object({
+  platform: z.enum(['youtube', 'tiktok']),
+  url: z.string().trim().min(2, 'Paste your channel link.').max(300),
+});
+
+export const creatorDetailsSchema = z.object({
   headline: text(10, 90, 'Headline'),
   bio: multiline(1200, 'Bio').pipe(z.string().min(40, 'Write at least 40 characters about your content.')),
-  niches: z.array(z.enum(NICHES)).min(1, 'Pick at least one niche.').max(5, 'Pick up to 5 niches.'),
-}).superRefine((v, ctx) => {
-  const yt = hostIn(['youtube.com', 'youtu.be']);
-  const tt = hostIn(['tiktok.com']);
-  if ((v.platform === 'youtube' || v.platform === 'both') && !yt(v.youtubeUrl)) {
-    ctx.addIssue({ code: 'custom', path: ['youtubeUrl'], message: 'Add your YouTube channel link.' });
-  }
-  if ((v.platform === 'tiktok' || v.platform === 'both') && !tt(v.tiktokUrl)) {
-    ctx.addIssue({ code: 'custom', path: ['tiktokUrl'], message: 'Add your TikTok profile link.' });
-  }
+  niches: z.array(z.enum(NICHES)).min(1, 'Pick at least one genre.').max(5, 'Pick up to 5 genres.'),
 });
 
 export const packageSchema = z.object({
   title: text(3, 60, 'Title'),
   description: multiline(400, 'Description'),
-  price: z.coerce.number().int().min(50, 'Minimum price is R$ 50.').max(1_000_000),
+  currency: z.enum(['ROBUX', 'USD']),
+  price: z.coerce.number().positive('Enter a price.').max(1_000_000),
   deliveryDays: z.coerce.number().int().min(1).max(60),
   revisions: z.coerce.number().int().min(0).max(10),
 });
 
 export const withdrawSchema = z.object({
-  amount: z.coerce.number().int().min(100, 'Minimum withdrawal is R$ 100.'),
+  amount: z.coerce.number().int().min(1, 'Enter an amount.'),
   gamepass: z.string().trim().min(1, 'Enter your gamepass link.').max(300),
 });
+
+export const usdWithdrawSchema = z.object({ amount: z.coerce.number().positive('Enter an amount.').max(100_000) });
 
 export const depositSchema = z.object({
   amount: z.coerce.number().int().min(100, 'Minimum deposit is R$ 100.').max(10_000_000),
   reference: text(3, 120, 'Reference'),
+});
+
+export const usdDepositSchema = z.object({ amount: z.coerce.number().min(5, 'Minimum deposit is $5.').max(1000, 'Maximum deposit is $1,000.') });
+
+export const reportSchema = z.object({
+  reason: z.enum(['impersonation', 'scam', 'fake_stats', 'off_platform', 'abuse', 'other']),
+  details: multiline(800, 'Details'),
 });
 
 export type FieldErrors = Record<string, string>;

@@ -70,6 +70,7 @@ export function Chat({ orderId, userId, initial, canSend }: { orderId: string; u
                 )}
                 {m.file_path && m.file_type?.startsWith('video/') && <video src={`/files/${m.file_path}`} controls preload="metadata" className="mb-1.5 max-h-56 rounded-lg" />}
                 {m.body && <p className="whitespace-pre-wrap break-words">{m.body}</p>}
+                {m.flagged ? <p className={`mt-1.5 rounded-md px-2 py-1 text-[11px] font-medium leading-snug ${m.sender_id === userId ? 'bg-white/10 text-paper/80' : 'bg-amber-soft text-amber'}`}>Careful: this mentions payment or contact outside CreatorLink. Escrow only protects orders paid here. Never share passwords or codes.</p> : null}
                 <p className={`mt-1 text-[11px] ${m.sender_id === userId ? 'text-paper/50' : 'text-ink-4'}`}>{dateTime(m.created_at)}</p>
               </div>
             </div>

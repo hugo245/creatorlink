@@ -1,4 +1,5 @@
 import { all, get, run, now, uid } from './db';
+import { balanceColumn, type Currency } from './money';
 
 /** Error whose message is safe to show to end users. */
 export class AppError extends Error {
@@ -23,19 +24,24 @@ export type TxKind =
  * This is the ONLY code that changes `users.balance`. The update is a single atomic statement guarded by a
  * CHECK (balance >= 0) constraint, so concurrent requests can never overspend.
  */
-export async function postEntry(userId: string, amount: number, kind: TxKind, opts: { orderId?: string; note?: string } = {}) {
+export async function postEntry(
+  userId: string, amount: number, kind: TxKind,
+  opts: { orderId?: string; note?: string; currency?: Currency } = {},
+) {
   if (!Number.isInteger(amount) || amount === 0) throw new Error('Invalid ledger amount');
+  const currency = opts.currency ?? 'ROBUX';
+  const col = balanceColumn(currency); // whitelisted column name, never user input
   let row: { balance: number } | undefined;
   try {
-    row = await get<{ balance: number }>('UPDATE users SET balance = balance + ? WHERE id = ? RETURNING balance', amount, userId);
+    row = await get<{ balance: number }>(`UPDATE users SET ${col} = ${col} + ? WHERE id = ? RETURNING ${col} AS balance`, amount, userId);
   } catch (e) {
-    if ((e as { code?: string }).code === '23514') throw new AppError('Not enough Robux in your balance.');
+    if ((e as { code?: string }).code === '23514') throw new AppError(`Not enough ${currency === 'USD' ? 'USD' : 'Robux'} in your balance.`);
     throw e;
   }
   if (!row) throw new AppError('Account not found.');
   await run(
-    'INSERT INTO transactions (id, user_id, kind, amount, balance_after, order_id, note, created_at) VALUES (?,?,?,?,?,?,?,?)',
-    uid(), userId, kind, amount, row.balance, opts.orderId ?? null, opts.note ?? null, now(),
+    'INSERT INTO transactions (id, user_id, kind, amount, balance_after, order_id, note, created_at, currency) VALUES (?,?,?,?,?,?,?,?,?)',
+    uid(), userId, kind, amount, row.balance, opts.orderId ?? null, opts.note ?? null, now(), currency,
   );
   return row.balance;
 }

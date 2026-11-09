@@ -2,6 +2,15 @@
 
 This is the plain-English version of what the code does, what it doesn't do, and what you must run as the operator.
 
+## Two currencies
+
+Every package is priced in **Robux** or **USD** (stored as cents). Each user has two wallets, and an order is escrowed, refunded
+and paid out in the currency it was priced in. There is no conversion between them.
+
+- **USD is automatic end to end.** Deposits: Stripe Checkout, credited by a signed webhook. Payouts: a Stripe Connect transfer.
+  Real dollars sit in your Stripe balance. See [PAYMENTS_AND_VERIFICATION.md](PAYMENTS_AND_VERIFICATION.md).
+- **Robux is manual** (gamepass purchases confirmed by an admin), because Roblox offers no API for moving Robux.
+
 ## The short version
 
 CreatorLink holds a **ledger**. Each user has a Robux balance in the database. When a developer orders, the price is
@@ -10,7 +19,7 @@ strict rules. No user, and no bug in a single request, can move that money any o
 
 What the software does **not** do is move real Robux. Roblox has no public API for that. Real Robux enters and leaves
 through Roblox **gamepasses**, and an admin confirms each one by hand. So this is a **custodial** model: your
-Roblox account holds the real Robux; the database says who is owed what.
+Roblox account holds the real Robux and your Stripe account holds the real dollars; the database says who is owed what.
 
 ## The order lifecycle
 

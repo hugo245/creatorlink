@@ -12,14 +12,14 @@ export const dynamic = 'force-dynamic';
 
 const STEPS = [
   ['Find a creator', 'Filter by platform, genre, audience size and price. Every channel is reviewed by our team before it can list.'],
-  ['Book a package', 'Pick a fixed-price package and send your game and brief. Your Robux moves into escrow and the creator can see the order is funded.'],
+  ['Book a package', 'Pick a fixed-price package and send your game and brief. Your payment moves into escrow and the creator can see the order is funded.'],
   ['Review the delivery', 'The creator posts the video and sends you the link. Approve it, or ask for a revision.'],
   ['Release the funds', 'Approve and the creator is paid. If something goes wrong, support steps in and the escrow protects you.'],
 ];
 
 const TRUST = [
   [ShieldCheck, 'Escrow on every order', 'Funds are locked until you approve.'],
-  [BadgeCheck, 'Reviewed creators', 'Every channel is checked by hand.'],
+  [BadgeCheck, 'Verified channels', 'Ownership proven, stats pulled live.'],
   [Tag, 'Fixed prices', 'See the price before you commit.'],
   [LifeBuoy, 'Dispute support', 'A person reads every dispute.'],
 ] as const;
@@ -27,8 +27,8 @@ const TRUST = [
 const FAQ = [
   ['How does escrow work?', 'When you place an order, the price is taken from your CreatorLink balance and held on the order. The creator is paid only after you approve the delivery, or after the 72-hour review window passes. If they decline, miss the deadline, or lose a dispute, the full amount returns to your balance.'],
   ['What does it cost?', `Ordering is free for developers. You pay the package price and nothing on top. Creators pay a ${config.feeBps / 100}% service fee on completed orders only. There are no listing fees or subscriptions.`],
-  ['How do I add or withdraw Robux?', 'Deposits and withdrawals go through Roblox gamepasses, so transfers stay inside Roblox’s own rules. Request a deposit or withdrawal from your wallet and our team confirms it, usually within a day.'],
-  ['How are creators vetted?', 'Every creator submits their channel, audience numbers and a short pitch. We review each application by hand and can suspend a listing at any time. Reviews only come from buyers who completed an order.'],
+  ['Can I pay with US dollars?', 'Yes. Creators price each package in Robux or USD. Add dollars to your wallet by card (processed by Stripe), and creators cash out to their bank. Robux deposits and withdrawals go through Roblox gamepasses, confirmed by our team, usually within a day.'],
+  ['How do I know a creator is real?', 'Creators prove they own their channel by adding a one-time code to their YouTube description or TikTok bio, and their name and audience numbers are read directly from the platform, not typed in. A team member then reviews every application. Reviews only come from buyers who completed an order.'],
   ['What if the work isn’t what I asked for?', 'Request a revision first. Each package includes a set number. If you still can’t agree, open a dispute. Support reads the conversation and the delivery, then releases the funds or refunds you.'],
 ];
 
@@ -46,7 +46,7 @@ export default async function Home() {
               <span className="text-signal">Pay when the video is live.</span>
             </h1>
             <p className="mt-5 max-w-xl text-[17px] leading-relaxed text-ink-2">
-              Book YouTubers and TikTokers for fixed-price game promotions. Your Robux stays in escrow until you have seen the delivery and approved it.
+              Book YouTubers and TikTokers for fixed-price game promotions. Pay in Robux or US dollars. Your payment stays in escrow until you have seen the delivery and approved it.
             </p>
 
             <form action="/creators" className="mt-8 grid max-w-xl gap-2 rounded-2xl border border-line-strong bg-white p-2 shadow-lift sm:grid-cols-[1fr_1fr_auto]">
@@ -131,7 +131,7 @@ export default async function Home() {
             </p>
             <dl className="mt-8 space-y-6">
               {[
-                ['Automatic refunds', 'If the creator declines, doesn’t respond within 48 hours, or misses the deadline, your Robux returns to your balance.'],
+                ['Automatic refunds', 'If the creator declines, doesn’t respond within 48 hours, or misses the deadline, your money returns to your balance.'],
                 ['You decide when it’s done', 'Request revisions, then approve. If you don’t respond, funds release after a 72-hour review window.'],
                 ['Disputes are reviewed by a person', 'Support reads the whole conversation and the delivery before releasing funds or refunding you.'],
               ].map(([t, d]) => (
@@ -151,7 +151,7 @@ export default async function Home() {
         <div className="container-x grid gap-5 lg:grid-cols-2">
           <div className="rounded-3xl border border-line bg-white p-8 shadow-card sm:p-10">
             <h3 className="font-display text-2xl font-bold tracking-tight">For developers</h3>
-            <p className="mt-3 text-ink-2">See real audience numbers, fixed prices and past reviews before you commit any Robux.</p>
+            <p className="mt-3 text-ink-2">See real audience numbers, fixed prices and past reviews before you commit any money.</p>
             <ul className="mt-6 space-y-2.5 text-[15px] text-ink-2">
               {['Transparent, fixed-price packages', 'Chat and share files inside each order', 'Reviews only from completed orders'].map((t) => (
                 <li key={t} className="flex gap-2.5"><Check size={17} className="mt-0.5 shrink-0 text-moss" strokeWidth={3} />{t}</li>

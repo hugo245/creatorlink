@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Avatar } from './avatar';
-import { PlatformIcons, Robux, Stars } from './ui';
+import { Money, PlatformIcons, Stars, VerifiedBadge } from './ui';
 import { compact, rating } from '@/lib/format';
 import type { Creator } from '@/lib/creators';
 
@@ -17,7 +17,7 @@ export function CreatorCard({ c }: { c: Creator }) {
             <h3 className="truncate font-display text-[17px] font-bold leading-tight">{c.display_name}</h3>
             <PlatformIcons platform={c.platform} />
           </div>
-          <div className="mt-1"><Stars value={rating(c.rating_sum, c.rating_count)} count={c.rating_count} /></div>
+          <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1"><Stars value={rating(c.rating_sum, c.rating_count)} count={c.rating_count} />{c.verified && <VerifiedBadge label="Verified" className="!px-1.5 !py-0 !text-[11px]" />}</div>
         </div>
       </div>
       <p className="mt-4 line-clamp-2 h-[2.45rem] text-sm leading-snug text-ink-2">{c.headline}</p>
@@ -37,7 +37,7 @@ export function CreatorCard({ c }: { c: Creator }) {
         </div>
         <div className="text-right">
           <dt className="text-[11px] font-medium uppercase tracking-wide text-ink-3">From</dt>
-          <dd className="font-semibold">{c.min_price ? <Robux n={c.min_price} /> : '-'}</dd>
+          <dd className="font-semibold">{c.min_price ? <Money n={c.min_price} c={c.min_price_currency ?? 'ROBUX'} /> : '-'}</dd>
         </div>
       </dl>
     </Link>

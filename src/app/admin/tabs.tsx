@@ -4,11 +4,11 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import clsx from 'clsx';
 
-export function AdminTabs({ counts }: { counts: { c: number; d: number; p: number } }) {
+export function AdminTabs({ counts }: { counts: { c: number; d: number; p: number; r: number } }) {
   const path = usePathname();
   const tabs = [
     ['/admin', 'Overview', 0], ['/admin/creators', 'Creators', counts.c], ['/admin/disputes', 'Disputes', counts.d],
-    ['/admin/payments', 'Payments', counts.p], ['/admin/users', 'Users', 0],
+    ['/admin/payments', 'Payments', counts.p], ['/admin/reports', 'Reports', counts.r], ['/admin/users', 'Users', 0],
   ] as const;
   return (
     <nav className="border-b border-line bg-white" aria-label="Admin">

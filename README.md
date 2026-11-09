@@ -26,6 +26,7 @@ npm run build && npm start
 ## Going to production
 
 Follow **[docs/SUPABASE.md](docs/SUPABASE.md)**: Supabase for the database and file storage, Vercel (or any Node host) for the app.
+Then set up **[USD payments and creator verification](docs/PAYMENTS_AND_VERIFICATION.md)** (Stripe + YouTube API).
 Read **[docs/HOW_IT_WORKS.md](docs/HOW_IT_WORKS.md)** before launch. It explains exactly how escrow works, what is manual,
 and what you need to run as the operator.
 
@@ -33,6 +34,8 @@ All configuration is in `.env.example`.
 
 ## What's in it
 
+- **Verified creators:** paste a channel link, prove ownership with a one-time code, and the name and stats (subscribers, average views) are read straight from YouTube. Lookalike-name detection, unique channels, reports, chat scam flags.
+- **Two currencies:** packages are priced in Robux or USD. USD deposits by card (Stripe) and payouts to bank (Stripe Connect), with payout holds and chargeback handling.
 - **Marketplace:** search, filter and sort creators; public profiles with packages and reviews from completed orders.
 - **Escrow orders:** place, accept, deliver, approve, with revisions and disputes. Declined, unanswered (48h) and late orders refund
   automatically; unreviewed deliveries auto-release after 72h.

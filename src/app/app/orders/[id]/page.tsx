@@ -5,9 +5,11 @@ import clsx from 'clsx';
 import { requireUser } from '@/lib/auth';
 import { get } from '@/lib/db';
 import { orderDetail, orderMessages } from '@/lib/queries';
-import { Robux, StatusBadge } from '@/components/ui';
+import { Money, StatusBadge } from '@/components/ui';
 import { Avatar } from '@/components/avatar';
+import { fmtMoney } from '@/lib/money';
 import { dateTime, plural, relativeDue } from '@/lib/format';
+import { ReportButton } from '@/components/report-button';
 import { Chat } from './chat';
 import { OrderActions } from './order-actions';
 
@@ -58,8 +60,8 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
           <p className="mt-1.5 text-ink-3">{o.package_title} · {role === 'seller' ? 'Buyer' : 'Creator'}: <span className="font-medium text-ink">{partner}</span></p>
         </div>
         <div className="text-right">
-          <Robux n={role === 'seller' ? o.price - o.fee : o.price} className="font-display text-3xl font-bold" />
-          <p className="text-xs text-ink-3">{role === 'seller' ? `you earn · after R$ ${o.fee.toLocaleString('en-US')} fee` : closed ? 'order total' : 'held in escrow'}</p>
+          <Money n={role === 'seller' ? o.price - o.fee : o.price} c={o.currency} className="font-display text-3xl font-bold" />
+          <p className="text-xs text-ink-3">{role === 'seller' ? `you earn · after ${fmtMoney(o.fee, o.currency)} fee` : closed ? 'order total' : 'held in escrow'}</p>
         </div>
       </div>
 
@@ -156,6 +158,7 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
 
         <div className="lg:sticky lg:top-24 lg:self-start">
           <Chat orderId={o.id} userId={user.id} initial={msgs} canSend={canChat} />
+          {role !== 'admin' && <div className="mt-3 text-center"><ReportButton targetType="order" targetId={o.id} label="Report a problem with this order" /></div>}
         </div>
       </div>
     </>

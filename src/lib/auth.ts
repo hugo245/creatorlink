@@ -15,6 +15,11 @@ export type SessionUser = {
   roblox_username: string | null;
   avatar: string | null;
   balance: number;
+  balance_usd: number;
+  email_verified_at: number | null;
+  stripe_account_id: string | null;
+  payout_hold: number;
+  created_at: number;
   banned_at: number | null;
   creator_id: string | null;
   creator_status: 'pending' | 'approved' | 'rejected' | 'suspended' | null;
@@ -59,7 +64,8 @@ export const getUser = cache(async (): Promise<SessionUser | null> => {
   const token = jar.get(COOKIE)?.value;
   if (!token) return null;
   const row = await get<SessionUser & { expires_at: number }>(
-    `SELECT u.id, u.email, u.username, u.role, u.roblox_username, u.avatar, u.balance, u.banned_at,
+    `SELECT u.id, u.email, u.username, u.role, u.roblox_username, u.avatar, u.balance, u.balance_usd, u.email_verified_at,
+            u.stripe_account_id, u.payout_hold, u.created_at, u.banned_at,
             c.id AS creator_id, c.status AS creator_status, c.slug AS creator_slug, s.expires_at
        FROM sessions s JOIN users u ON u.id = s.user_id
        LEFT JOIN creators c ON c.user_id = u.id

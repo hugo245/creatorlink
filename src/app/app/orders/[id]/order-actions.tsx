@@ -108,7 +108,7 @@ export function OrderActions(p: ActionsProps) {
 
   // buyer
   if (status === 'pending') {
-    return <ActionButton action={() => A.cancelOrder(id)} confirm="Cancel and refund your Robux?" className="btn btn-outline">Cancel order</ActionButton>;
+    return <ActionButton action={() => A.cancelOrder(id)} confirm="Cancel and refund your payment?" className="btn btn-outline">Cancel order</ActionButton>;
   }
   if (status === 'active') {
     return (

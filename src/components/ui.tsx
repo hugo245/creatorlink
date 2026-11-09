@@ -1,5 +1,6 @@
 import clsx from 'clsx';
-import { Star, Check, Clock, X, AlertTriangle, Truck, RotateCcw, Loader } from 'lucide-react';
+import { Star, Check, Clock, X, AlertTriangle, Truck, RotateCcw, Loader, BadgeCheck } from 'lucide-react';
+import { fmtMoney, type Currency } from '@/lib/money';
 import { YouTubeIcon, TikTokIcon } from './icons';
 import type { OrderStatus } from '@/lib/orders';
 
@@ -44,11 +45,30 @@ export function StatusBadge({ status }: { status: OrderStatus }) {
   );
 }
 
-export function Robux({ n, className }: { n: number; className?: string }) {
+export function Money({ n, c = 'ROBUX', className }: { n: number; c?: Currency; className?: string }) {
+  const text = fmtMoney(n, c);
+  const i = text.search(/[0-9]/);
   return (
     <span className={clsx('tnum whitespace-nowrap', className)}>
-      <span className="mr-[0.15em] font-semibold opacity-60">R$</span>
-      {Math.round(n).toLocaleString('en-US')}
+      <span className={clsx('font-semibold opacity-60', c === 'ROBUX' && 'mr-[0.15em]')}>{text.slice(0, i).trim()}</span>
+      {text.slice(i)}
+    </span>
+  );
+}
+
+/** Both wallets side by side, e.g. "R$ 19,000 · $50". */
+export function DualMoney({ robux, usd, className }: { robux: number; usd: number; className?: string }) {
+  return (
+    <span className={clsx('whitespace-nowrap', className)}>
+      <Money n={robux} /> <span className="px-1 opacity-30">|</span> <Money n={usd} c="USD" />
+    </span>
+  );
+}
+
+export function VerifiedBadge({ className, label = 'Verified channel' }: { className?: string; label?: string }) {
+  return (
+    <span className={clsx('inline-flex items-center gap-1 rounded-full bg-sky-soft px-2 py-0.5 text-xs font-semibold text-sky', className)} title="Channel ownership confirmed by CreatorLink">
+      <BadgeCheck size={13} aria-hidden /> {label}
     </span>
   );
 }

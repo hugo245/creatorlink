@@ -2,7 +2,8 @@
 
 import { ActionForm, Notice, SubmitButton } from '@/components/form';
 import { ActionButton } from '@/components/action-button';
-import { adminAdjustBalance, adminResolveDispute, adminResolvePayment, adminReviewCreator, adminSetBan } from '@/app/actions/account';
+import { adminAdjustBalance, adminResolveDispute, adminResolvePayment, adminResolveReport, adminReviewCreator, adminSetBan, adminTogglePayoutHold, adminVerifyEmail } from '@/app/actions/account';
+import { adminVerifyPlatform } from '@/app/actions/creator';
 
 export function CreatorReviewForm({ id, status }: { id: string; status: string }) {
   const buttons = status === 'approved'
@@ -63,11 +64,43 @@ export function AdjustForm({ id }: { id: string }) {
   return (
     <ActionForm action={adminAdjustBalance.bind(null, id)} resetOnSuccess className="flex items-center gap-2">
       {(s) => (<>
-        <input name="amount" type="number" placeholder="± R$" className="field h-9 w-24 text-sm" />
+        <select name="currency" aria-label="Currency" className="field h-9 w-24 text-sm"><option value="ROBUX">Robux</option><option value="USD">USD</option></select>
+        <input name="amount" type="number" step="any" placeholder="±" className="field h-9 w-20 text-sm" />
         <input name="note" placeholder="Reason" className="field h-9 w-36 text-sm" />
         <SubmitButton className="btn btn-outline btn-sm">Adjust</SubmitButton>
         <Notice state={s?.error ? s : null} />
       </>)}
     </ActionForm>
+  );
+}
+
+export function HoldButton({ id, held }: { id: string; held: boolean }) {
+  return <ActionButton action={() => adminTogglePayoutHold(id)} className="btn btn-outline btn-sm">{held ? 'Release payout hold' : 'Hold payouts'}</ActionButton>;
+}
+
+export function VerifyEmailButton({ id }: { id: string }) {
+  return <ActionButton action={() => adminVerifyEmail(id)} className="btn btn-outline btn-sm">Mark email verified</ActionButton>;
+}
+
+export function VerifyPlatformButton({ id, platform }: { id: string; platform: 'youtube' | 'tiktok' }) {
+  return (
+    <ActionButton action={() => adminVerifyPlatform(id, platform)} confirm={`Confirm you saw the code on their ${platform === 'youtube' ? 'YouTube channel' : 'TikTok bio'}?`} className="btn btn-outline btn-sm">
+      Verify {platform === 'youtube' ? 'YouTube' : 'TikTok'} manually
+    </ActionButton>
+  );
+}
+
+export function ReportForm({ id }: { id: string }) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {(['resolved', 'dismissed'] as const).map((st) => (
+        <ActionForm key={st} action={adminResolveReport.bind(null, id, st)} className="flex items-center gap-2">
+          {() => (<>
+            <input name="note" placeholder="Note" className="field h-9 w-40 text-sm" />
+            <SubmitButton className={`btn btn-sm ${st === 'resolved' ? 'btn-primary' : 'btn-outline'}`}>{st === 'resolved' ? 'Resolve' : 'Dismiss'}</SubmitButton>
+          </>)}
+        </ActionForm>
+      ))}
+    </div>
   );
 }

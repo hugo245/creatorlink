@@ -1,6 +1,7 @@
 import { all, get, run, tx, now, uid } from './db';
 import { config, DAY, HOUR } from './config';
 import { AppError, audit, notify, notifyAdmins, postEntry } from './ledger';
+import { fmtMoney, type Currency } from './money';
 
 export type OrderStatus =
   | 'pending'
@@ -21,6 +22,7 @@ export type Order = {
   package_title: string;
   price: number;
   fee: number;
+  currency: Currency;
   delivery_days: number;
   revisions_allowed: number;
   revisions_used: number;
@@ -44,7 +46,7 @@ export type Order = {
 };
 
 export const feeFor = (price: number) => Math.floor((price * config.feeBps) / 10_000);
-const fmt = (n: number) => n.toLocaleString('en-US');
+const fmt = (n: number, c: Currency = 'ROBUX') => fmtMoney(n, c);
 
 export function getOrder(id: string) {
   return get<Order>('SELECT * FROM orders WHERE id = ?', id);
@@ -80,10 +82,10 @@ export type NewOrder = { buyerId: string; packageId: string; gameName: string; g
 export function createOrder(input: NewOrder): Promise<string> {
   return tx(async () => {
     const pkg = await get<{
-      id: string; title: string; price: number; delivery_days: number; revisions: number; active: number;
+      id: string; title: string; price: number; currency: Currency; delivery_days: number; revisions: number; active: number;
       creator_id: string; user_id: string; status: string; is_listed: number;
     }>(
-      `SELECT p.id, p.title, p.price, p.delivery_days, p.revisions, p.active, p.creator_id, c.user_id, c.status, c.is_listed
+      `SELECT p.id, p.title, p.price, p.currency, p.delivery_days, p.revisions, p.active, p.creator_id, c.user_id, c.status, c.is_listed
          FROM packages p JOIN creators c ON c.id = p.creator_id WHERE p.id = ?`,
       input.packageId,
     );
@@ -93,16 +95,16 @@ export function createOrder(input: NewOrder): Promise<string> {
     const id = uid();
     const t = now();
     await run(
-      `INSERT INTO orders (id, buyer_id, creator_id, seller_user_id, package_id, package_title, price, fee,
+      `INSERT INTO orders (id, buyer_id, creator_id, seller_user_id, package_id, package_title, price, fee, currency,
          delivery_days, revisions_allowed, game_name, game_url, brief, status, respond_by, created_at, updated_at)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,'pending',?,?,?)`,
-      id, input.buyerId, pkg.creator_id, pkg.user_id, pkg.id, pkg.title, pkg.price, feeFor(pkg.price),
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,'pending',?,?,?)`,
+      id, input.buyerId, pkg.creator_id, pkg.user_id, pkg.id, pkg.title, pkg.price, feeFor(pkg.price), pkg.currency,
       pkg.delivery_days, pkg.revisions, input.gameName, input.gameUrl, input.brief,
       t + config.acceptWindowHours * HOUR, t, t,
     );
     // Funds leave the buyer's balance and are held on the order until release or refund.
-    await postEntry(input.buyerId, -pkg.price, 'escrow_hold', { orderId: id, note: `Escrow for “${pkg.title}”` });
-    await systemMessage(id, `Order placed. R$ ${fmt(pkg.price)} is held in escrow until the work is approved.`);
+    await postEntry(input.buyerId, -pkg.price, 'escrow_hold', { orderId: id, currency: pkg.currency, note: `Escrow for “${pkg.title}”` });
+    await systemMessage(id, `Order placed. ${fmt(pkg.price, pkg.currency)} is held in escrow until the work is approved.`);
     await notify(pkg.user_id, 'New order request', `${input.gameName} · ${pkg.title}`, orderHref(id));
     return id;
   });
@@ -128,7 +130,7 @@ export function declineOrder(orderId: string, userId: string, reason: string) {
     if (o.status !== 'pending') throw new AppError('This order is no longer awaiting a response.');
     await refundBuyer(o, 'declined', reason || 'Declined by creator');
     await systemMessage(o.id, `Creator declined the order${reason ? `: “${reason}”` : '.'} The escrow was refunded.`);
-    await notify(o.buyer_id, 'Order declined', `Your R$ ${fmt(o.price)} was refunded.`, orderHref(o.id));
+    await notify(o.buyer_id, 'Order declined', `Your ${fmt(o.price, o.currency)} was refunded.`, orderHref(o.id));
   });
 }
 
@@ -188,7 +190,7 @@ export function openDispute(orderId: string, userId: string, reason: string) {
     await setStatus(o, 'disputed', { dispute_reason: reason, dispute_by: userId, auto_release_at: null });
     await systemMessage(o.id, 'A dispute was opened. CreatorLink support will review the conversation and deliverables.');
     await notify(userId === o.buyer_id ? o.seller_user_id : o.buyer_id, 'Dispute opened', reason.slice(0, 120), orderHref(o.id));
-    await notifyAdmins('Dispute needs review', `${o.game_name} · R$ ${fmt(o.price)}`, '/admin/disputes');
+    await notifyAdmins('Dispute needs review', `${o.game_name} · ${fmt(o.price, o.currency)}`, '/admin/disputes');
   });
 }
 
@@ -214,16 +216,16 @@ export function resolveDispute(orderId: string, adminId: string, outcome: 'relea
 
 async function refundBuyer(o: Order, status: 'cancelled' | 'declined' | 'refunded', reason: string) {
   await setStatus(o, status, { closed_reason: reason, respond_by: null, due_at: null, auto_release_at: null, completed_at: now() });
-  await postEntry(o.buyer_id, o.price, 'escrow_refund', { orderId: o.id, note: `Refund · ${o.package_title}` });
+  await postEntry(o.buyer_id, o.price, 'escrow_refund', { orderId: o.id, currency: o.currency, note: `Refund · ${o.package_title}` });
 }
 
 async function release(o: Order, message: string) {
   const payout = o.price - o.fee;
   await setStatus(o, 'completed', { completed_at: now(), auto_release_at: null });
-  await postEntry(o.seller_user_id, payout, 'sale', { orderId: o.id, note: `${o.package_title} (fee R$ ${fmt(o.fee)})` });
+  await postEntry(o.seller_user_id, payout, 'sale', { orderId: o.id, currency: o.currency, note: `${o.package_title} (fee ${fmt(o.fee, o.currency)})` });
   await run('UPDATE creators SET completed_orders = completed_orders + 1 WHERE id = ?', o.creator_id);
-  await systemMessage(o.id, `${message} R$ ${fmt(payout)} was released to the creator.`);
-  await notify(o.seller_user_id, 'Funds released', `You earned R$ ${fmt(payout)} for ${o.game_name}.`, orderHref(o.id));
+  await systemMessage(o.id, `${message} ${fmt(payout, o.currency)} was released to the creator.`);
+  await notify(o.seller_user_id, 'Funds released', `You earned ${fmt(payout, o.currency)} for ${o.game_name}.`, orderHref(o.id));
   await notify(o.buyer_id, 'Order completed', 'Leave a review to help other developers.', orderHref(o.id));
 }
 
@@ -262,7 +264,7 @@ export async function sweepOrders(force = false) {
       if (o.status !== 'pending') return;
       await refundBuyer(o, 'cancelled', 'Creator did not respond in time');
       await systemMessage(o.id, 'The creator did not respond in time. The order was cancelled and the escrow refunded.');
-      await notify(o.buyer_id, 'Order expired', `Your R$ ${fmt(o.price)} was refunded.`, orderHref(o.id));
+      await notify(o.buyer_id, 'Order expired', `Your ${fmt(o.price, o.currency)} was refunded.`, orderHref(o.id));
     }).catch(() => {});
   }
   const stale = await all<{ id: string }>("SELECT id FROM orders WHERE status = 'delivered' AND auto_release_at < ?", t);

@@ -9,6 +9,8 @@ import * as orders from '@/lib/orders';
 import { deliverSchema, orderSchema, reasonSchema, reviewSchema, zodErrors } from '@/lib/validators';
 import { hit } from '@/lib/ratelimit';
 import { saveUpload } from '@/lib/storage';
+import { assertEmailVerified } from '@/lib/identity';
+import { flagMessage } from '@/lib/safety';
 import type { ActionState } from '@/components/form';
 
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? '');
@@ -28,6 +30,12 @@ async function guard(path: string, fn: () => Promise<unknown>, message: string):
 
 export async function placeOrder(_: ActionState, fd: FormData): Promise<ActionState> {
   const user = await requireUser();
+  try {
+    assertEmailVerified(user);
+  } catch (e) {
+    if (e instanceof AppError) return { error: e.message };
+    throw e;
+  }
   const raw = { packageId: str(fd, 'packageId'), gameName: str(fd, 'gameName'), gameUrl: str(fd, 'gameUrl'), brief: str(fd, 'brief') };
   const parsed = orderSchema.safeParse(raw);
   if (!parsed.success) return { fields: zodErrors(parsed.error), values: raw };
@@ -116,8 +124,8 @@ export async function sendMessage(orderId: string, _: ActionState, fd: FormData)
     }
   }
   await run(
-    "INSERT INTO messages (id, order_id, sender_id, kind, body, file_path, file_name, file_type, created_at) VALUES (?,?,?,'user',?,?,?,?,?)",
-    uid(), orderId, u.id, body, att?.path ?? null, hasFile ? (file as File).name.slice(0, 120) : null, att?.mime ?? null, now(),
+    "INSERT INTO messages (id, order_id, sender_id, kind, body, file_path, file_name, file_type, created_at, flagged) VALUES (?,?,?,'user',?,?,?,?,?,?)",
+    uid(), orderId, u.id, body, att?.path ?? null, hasFile ? (file as File).name.slice(0, 120) : null, att?.mime ?? null, now(), flagMessage(body) ? 1 : 0,
   );
   const other = u.id === o.buyer_id ? o.seller_user_id : o.buyer_id;
   // Collapse repeated message pings: only one unread "new message" per order.

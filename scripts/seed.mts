@@ -5,6 +5,7 @@
 import { all, get, run, now, uid } from '../src/lib/db';
 import { hashPassword } from '../src/lib/password';
 import { postEntry } from '../src/lib/ledger';
+import { skeleton } from '../src/lib/identity';
 import { acceptOrder, addReview, approveOrder, createOrder, deliverOrder, openDispute } from '../src/lib/orders';
 
 if (process.env.NODE_ENV === 'production' || (process.env.DATABASE_URL && !process.argv.includes('--i-know-this-is-not-production'))) {
@@ -12,7 +13,7 @@ if (process.env.NODE_ENV === 'production' || (process.env.DATABASE_URL && !proce
 }
 
 if (process.argv.includes('--reset')) {
-  for (const t of ['password_resets', 'rate_limits', 'reviews', 'messages', 'transactions', 'payment_requests', 'notifications', 'audit_log', 'orders', 'packages', 'creators', 'sessions', 'users']) {
+  for (const t of ['reports', 'email_verifications', 'password_resets', 'rate_limits', 'reviews', 'messages', 'transactions', 'payment_requests', 'notifications', 'audit_log', 'orders', 'packages', 'creators', 'sessions', 'users']) {
     await run(`DELETE FROM ${t}`);
   }
 }
@@ -26,13 +27,14 @@ const day = 86_400_000;
 
 async function user(username: string, email: string, role = 'user') {
   const id = uid();
-  await run('INSERT INTO users (id,email,username,password_hash,role,created_at) VALUES (?,?,?,?,?,?)', id, email, username, pw, role, now() - 30 * day);
+  await run('INSERT INTO users (id,email,username,username_skeleton,password_hash,role,email_verified_at,created_at) VALUES (?,?,?,?,?,?,?,?)', id, email, username, skeleton(username), pw, role, now() - 30 * day, now() - 30 * day);
   return id;
 }
 
 await user('admin', 'admin@creatorlink.local', 'admin');
 const dev = await user('demo_dev', 'dev@creatorlink.local');
 await postEntry(dev, 25_000, 'test_deposit', { note: 'Demo funds' });
+await postEntry(dev, 15_000, 'test_deposit', { currency: 'USD', note: 'Demo funds' });
 
 type Seed = {
   name: string; platform: 'youtube' | 'tiktok' | 'both'; followers: number; views: number; headline: string; bio: string; niches: string[];
@@ -72,15 +74,23 @@ for (const [idx, c] of CREATORS.entries()) {
   const uidc = await user(c.name.toLowerCase().replace(/\s+/g, '_'), `${c.name.toLowerCase().replace(/\s+/g, '.')}@creatorlink.local`);
   const cid = uid();
   const slug = c.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  const yt = c.platform !== 'tiktok';
+  const tt = c.platform !== 'youtube';
   await run(
-    `INSERT INTO creators (id,user_id,slug,display_name,headline,bio,platform,youtube_url,tiktok_url,followers,avg_views,niches,status,created_at,approved_at)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,'approved',?,?)`,
+    `INSERT INTO creators (id,user_id,slug,display_name,headline,bio,platform,youtube_url,tiktok_url,followers,avg_views,niches,status,created_at,approved_at,
+       verification_code,youtube_channel_id,youtube_title,youtube_verified_at,youtube_subs,youtube_total_views,youtube_video_count,youtube_avg_views,youtube_synced_at,
+       tiktok_handle,tiktok_title,tiktok_verified_at,tiktok_followers,tiktok_likes,tiktok_video_count,tiktok_synced_at)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,'approved',?,?, ?,?,?,?,?,?,?,?,?, ?,?,?,?,?,?,?)`,
     cid, uidc, slug, c.name, c.headline, c.bio, c.platform,
-    c.platform !== 'tiktok' ? `https://youtube.com/@${slug}` : null, c.platform !== 'youtube' ? `https://tiktok.com/@${slug}` : null,
+    yt ? `https://www.youtube.com/channel/UCdemo${String(idx).padStart(18, '0')}` : null, tt ? `https://www.tiktok.com/@${slug}` : null,
     c.followers, c.views, JSON.stringify(c.niches), now() - (20 - idx) * day, now() - (18 - idx) * day,
+    `CL-DEMO${idx}`, yt ? `UCdemo${String(idx).padStart(18, '0')}` : null, yt ? c.name : null, yt ? now() - day : null,
+    yt ? Math.round(c.followers * (tt ? 0.6 : 1)) : null, yt ? c.followers * 120 : null, yt ? 140 + idx * 12 : null, yt ? c.views : null, yt ? now() - 3_600_000 : null,
+    tt ? slug : null, tt ? c.name : null, tt ? now() - day : null, tt ? Math.round(c.followers * (yt ? 0.4 : 1)) : null, tt ? c.followers * 9 : null, tt ? 220 : null, tt ? now() - 3_600_000 : null,
   );
   for (const [i, [title, description, price, days, revisions]] of c.packages.entries()) {
-    await run('INSERT INTO packages (id,creator_id,title,description,price,delivery_days,revisions,position,created_at) VALUES (?,?,?,?,?,?,?,?,?)', uid(), cid, title, description, price, days, revisions, i, now());
+    const usd = [1, 2, 5].includes(idx);
+    await run('INSERT INTO packages (id,creator_id,title,description,price,currency,delivery_days,revisions,position,created_at) VALUES (?,?,?,?,?,?,?,?,?,?)', uid(), cid, title, description, usd ? Math.round((price * 0.35) / 5) * 5 : price, usd ? 'USD' : 'ROBUX', days, revisions, i, now());
   }
 }
 
@@ -89,7 +99,10 @@ const gameNames = ['Race Clicker X', 'Tycoon Empire', 'Obby Legends', 'Dungeon D
 const creators = await all<{ id: string; user_id: string }>('SELECT id, user_id FROM creators');
 const reviewers: string[] = [];
 for (const n of ['jump_studios', 'buildmaster', 'speedydev', 'pixelforge']) reviewers.push(await user(n, `${n}@creatorlink.local`));
-for (const r of reviewers) await postEntry(r, 400_000, 'test_deposit', { note: 'Demo funds' });
+for (const r of reviewers) {
+  await postEntry(r, 400_000, 'test_deposit', { note: 'Demo funds' });
+  await postEntry(r, 1_000_000, 'test_deposit', { currency: 'USD', note: 'Demo funds' });
+}
 
 for (const [i, c] of creators.entries()) {
   const pkgs = await all<{ id: string }>('SELECT id FROM packages WHERE creator_id = ?', c.id);

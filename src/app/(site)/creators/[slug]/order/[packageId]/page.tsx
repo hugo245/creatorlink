@@ -4,7 +4,7 @@ import type { Metadata } from 'next';
 import { Clock, Lock, RotateCcw } from 'lucide-react';
 import { Shell } from '@/components/marketing/shell';
 import { Avatar } from '@/components/avatar';
-import { Robux } from '@/components/ui';
+import { Money } from '@/components/ui';
 import { getUser } from '@/lib/auth';
 import { getCreatorBySlug, getPackage } from '@/lib/creators';
 import { OrderForm } from './order-form';
@@ -23,7 +23,8 @@ export default async function OrderPage({ params }: { params: Promise<{ slug: st
   const p = await getPackage(packageId);
   if (!c || c.status !== 'approved' || !p || p.creator_id !== c.id || !p.active) notFound();
   if (c.user_id === user.id) redirect(`/creators/${slug}`);
-  const short = user.balance < p.price;
+  const bal = p.currency === 'USD' ? user.balance_usd : user.balance;
+  const short = bal < p.price;
 
   return (
     <Shell>
@@ -45,18 +46,18 @@ export default async function OrderPage({ params }: { params: Promise<{ slug: st
                 <span className="flex items-center gap-1"><RotateCcw size={13} />{plural(p.revisions, 'revision')}</span>
               </p>
               <dl className="mt-5 space-y-2.5 border-t border-line pt-5 text-sm">
-                <div className="flex justify-between"><dt className="text-ink-3">Package</dt><dd className="font-semibold"><Robux n={p.price} /></dd></div>
-                <div className="flex justify-between"><dt className="text-ink-3">Service fee (paid by creator)</dt><dd className="text-ink-3"><Robux n={feeFor(p.price)} /></dd></div>
-                <div className="flex justify-between border-t border-line pt-3 font-display text-lg font-bold"><dt>You pay</dt><dd><Robux n={p.price} /></dd></div>
+                <div className="flex justify-between"><dt className="text-ink-3">Package</dt><dd className="font-semibold"><Money n={p.price} c={p.currency} /></dd></div>
+                <div className="flex justify-between"><dt className="text-ink-3">Service fee (paid by creator)</dt><dd className="text-ink-3"><Money n={feeFor(p.price)} c={p.currency} /></dd></div>
+                <div className="flex justify-between border-t border-line pt-3 font-display text-lg font-bold"><dt>You pay</dt><dd><Money n={p.price} c={p.currency} /></dd></div>
               </dl>
             </div>
             <div className={`rounded-2xl border p-5 text-sm ${short ? 'border-signal/30 bg-signal-soft' : 'border-line bg-white'}`}>
-              <div className="flex items-center justify-between"><span className="text-ink-3">Your balance</span><Robux n={user.balance} className="font-semibold" /></div>
+              <div className="flex items-center justify-between"><span className="text-ink-3">Your {p.currency === 'USD' ? 'USD' : 'Robux'} balance</span><Money n={bal} c={p.currency} className="font-semibold" /></div>
               {short && (
-                <p className="mt-3 text-signal-dark">You need <Robux n={p.price - user.balance} className="font-semibold" /> more. <Link href="/app/wallet" className="font-semibold underline">Add funds</Link></p>
+                <p className="mt-3 text-signal-dark">You need <Money n={p.price - bal} c={p.currency} className="font-semibold" /> more. <Link href="/app/wallet" className="font-semibold underline">Add funds</Link></p>
               )}
             </div>
-            <p className="flex gap-2.5 px-1 text-xs leading-relaxed text-ink-3"><Lock size={14} className="mt-0.5 shrink-0 text-moss" />Your Robux is held in escrow. If {c.display_name} doesn’t accept within {config.acceptWindowHours} hours, it’s refunded automatically.</p>
+            <p className="flex gap-2.5 px-1 text-xs leading-relaxed text-ink-3"><Lock size={14} className="mt-0.5 shrink-0 text-moss" />Your payment is held in escrow. If {c.display_name} doesn’t accept within {config.acceptWindowHours} hours, it’s refunded automatically.</p>
           </aside>
         </div>
       </div>

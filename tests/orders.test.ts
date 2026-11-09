@@ -13,12 +13,12 @@ const bal = async (id: string) => (await get<{ balance: number }>('SELECT balanc
 
 async function mkUser(name: string, role = 'user') {
   const id = uid();
-  await run('INSERT INTO users (id,email,username,password_hash,role,created_at) VALUES (?,?,?,?,?,?)', id, `${name}@t.dev`, name, 'x', role, Date.now());
+  await run('INSERT INTO users (id,email,username,password_hash,role,email_verified_at,created_at) VALUES (?,?,?,?,?,?,?)', id, `${name}@t.dev`, name, 'x', role, Date.now(), Date.now() - 30 * 86_400_000);
   return id;
 }
 
 beforeEach(async () => {
-  for (const t of ['password_resets', 'rate_limits', 'reviews', 'messages', 'transactions', 'payment_requests', 'notifications', 'audit_log', 'orders', 'packages', 'creators', 'users']) {
+  for (const t of ['reports', 'email_verifications', 'password_resets', 'rate_limits', 'reviews', 'messages', 'transactions', 'payment_requests', 'notifications', 'audit_log', 'orders', 'packages', 'creators', 'users']) {
     await run(`DELETE FROM ${t}`);
   }
   buyer = await mkUser('buyer');
@@ -153,7 +153,7 @@ describe('wallet', () => {
   });
 
   it('holds withdrawals and refunds on rejection', async () => {
-    await requestWithdrawal(buyer, 1000, '123456');
+    await requestWithdrawal({ id: buyer, email_verified_at: Date.now(), created_at: Date.now() - 30 * 86_400_000 }, 1000, '123456');
     expect(await bal(buyer)).toBe(4000);
     const r = (await get<{ id: string }>("SELECT id FROM payment_requests WHERE kind = 'withdrawal'"))!;
     await resolvePayment(admin, r.id, false, 'bad link');

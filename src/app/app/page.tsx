@@ -1,22 +1,23 @@
 import Link from 'next/link';
 import { ArrowRight, PackageOpen } from 'lucide-react';
 import { requireUser } from '@/lib/auth';
-import { get } from '@/lib/db';
+import { all, get } from '@/lib/db';
 import { ordersForUser } from '@/lib/queries';
-import { EmptyState, PageHeader, Robux } from '@/components/ui';
+import { DualMoney, EmptyState, PageHeader } from '@/components/ui';
 import { OrderList } from '@/components/app/order-list';
 
 export default async function Overview() {
   const user = await requireUser();
   const open = await ordersForUser(user.id, 'open', 6);
-  const stats = (await get<{ spent: number; earned: number; completed: number; escrow: number }>(
-    `SELECT
-       COALESCE((SELECT SUM(price) FROM orders WHERE buyer_id = ? AND status = 'completed'), 0) AS spent,
-       COALESCE((SELECT SUM(price - fee) FROM orders WHERE seller_user_id = ? AND status = 'completed'), 0) AS earned,
-       (SELECT COUNT(*) FROM orders WHERE (buyer_id = ? OR seller_user_id = ?) AND status = 'completed') AS completed,
-       COALESCE((SELECT SUM(price) FROM orders WHERE buyer_id = ? AND status IN ('pending','active','delivered','disputed')), 0) AS escrow`,
-    user.id, user.id, user.id, user.id, user.id,
-  ))!;
+  const sums = await all<{ currency: 'ROBUX' | 'USD'; earned: number; escrow: number }>(
+    `SELECT currency,
+            COALESCE(SUM(CASE WHEN seller_user_id = ? AND status = 'completed' THEN price - fee END), 0) AS earned,
+            COALESCE(SUM(CASE WHEN buyer_id = ? AND status IN ('pending','active','delivered','disputed') THEN price END), 0) AS escrow
+       FROM orders WHERE buyer_id = ? OR seller_user_id = ? GROUP BY currency`,
+    user.id, user.id, user.id, user.id,
+  );
+  const sum = (c: 'ROBUX' | 'USD', k: 'earned' | 'escrow') => sums.find((r) => r.currency === c)?.[k] ?? 0;
+  const completed = (await get<{ n: number }>("SELECT COUNT(*) AS n FROM orders WHERE (buyer_id = ? OR seller_user_id = ?) AND status = 'completed'", user.id, user.id))!.n;
   const action = open.filter((o) => (o.seller_user_id === user.id && o.status === 'pending') || (o.buyer_id === user.id && o.status === 'delivered'));
 
   return (
@@ -25,14 +26,14 @@ export default async function Overview() {
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         {[
-          ['Available balance', <Robux key="a" n={user.balance} />, 'Spendable or withdrawable'],
-          ['In escrow', <Robux key="b" n={stats.escrow} />, 'Held on your open orders'],
-          ['Earned', <Robux key="c" n={stats.earned} />, 'After fees, all time'],
-          ['Completed orders', stats.completed.toLocaleString(), 'Buying and selling'],
+          ['Available balance', <DualMoney key="a" robux={user.balance} usd={user.balance_usd} />, 'Robux and USD wallets'],
+          ['In escrow', <DualMoney key="b" robux={sum('ROBUX', 'escrow')} usd={sum('USD', 'escrow')} />, 'Held on your open orders'],
+          ['Earned', <DualMoney key="c" robux={sum('ROBUX', 'earned')} usd={sum('USD', 'earned')} />, 'After fees, all time'],
+          ['Completed orders', completed.toLocaleString(), 'Buying and selling'],
         ].map(([k, v, s], i) => (
           <div key={i} className="card p-4 sm:p-5">
             <p className="text-[13px] font-semibold text-ink-3">{k}</p>
-            <p className="mt-2 font-display text-2xl font-bold sm:text-[28px] leading-none tracking-tight">{v}</p>
+            <p className="mt-2 font-display text-xl font-bold sm:text-2xl leading-none tracking-tight">{v}</p>
             <p className="mt-2 text-xs text-ink-3">{s}</p>
           </div>
         ))}

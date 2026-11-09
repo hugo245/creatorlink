@@ -8,6 +8,8 @@ export default function Safety() {
   return (
     <Doc title="Safety & disputes">
       <p>CreatorLink exists so developers and creators can work together without trusting a stranger’s promise. This page explains exactly how your Robux is protected.</p>
+      <h2>Verified creators</h2>
+      <p>Creators prove they own their channel by adding a one-time code to their YouTube description or TikTok bio. Their public name and audience numbers are then read from the platform instead of typed in, each channel can only belong to one account, and our team reviews every application. Look for the “Verified channel” badge. If something looks off, use the Report button on any profile or order.</p>
       <h2>Escrow</h2>
       <p>When you place an order, the package price is deducted from your balance and locked to that order. It is not available to the creator until the work is approved. Every movement is recorded on your wallet ledger.</p>
       <h2>When you get a full refund</h2>
@@ -24,7 +26,7 @@ export default function Safety() {
       <p>Either party can open a dispute on an order in production or delivered. Support reads the full conversation and the delivery, may ask for more information, and then releases the funds to the creator or refunds the buyer. Decisions are recorded on the order.</p>
       <h2>Staying safe</h2>
       <ul>
-        <li>Keep conversations and payments on CreatorLink, because we can only protect orders we can see.</li>
+        <li>Keep conversations and payments on CreatorLink, because we can only protect orders we can see. Messages that mention outside payment or contact are flagged for both sides.</li>
         <li>Never share your Roblox password or .ROBLOSECURITY cookie with anyone. CreatorLink will never ask for it.</li>
         <li>Report suspicious behaviour to <a href={`mailto:${config.supportEmail}`}>{config.supportEmail}</a>.</li>
       </ul>

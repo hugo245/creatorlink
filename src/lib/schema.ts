@@ -196,4 +196,69 @@ export const MIGRATIONS: string[] = [
 
   ${TABLES.map((t) => `ALTER TABLE ${t} ENABLE ROW LEVEL SECURITY;`).join('\n  ')}
   `,
+
+  /* 2: USD wallets, channel verification, impersonation protection, reports */ `
+  ALTER TABLE users ADD COLUMN balance_usd INTEGER NOT NULL DEFAULT 0 CHECK (balance_usd >= 0);
+  ALTER TABLE users ADD COLUMN email_verified_at BIGINT;
+  ALTER TABLE users ADD COLUMN username_skeleton TEXT;
+  ALTER TABLE users ADD COLUMN stripe_account_id TEXT;
+  ALTER TABLE users ADD COLUMN payout_hold INTEGER NOT NULL DEFAULT 0;
+  CREATE UNIQUE INDEX users_skeleton_key ON users (username_skeleton) WHERE username_skeleton IS NOT NULL;
+
+  ALTER TABLE packages ADD COLUMN currency TEXT NOT NULL DEFAULT 'ROBUX' CHECK (currency IN ('ROBUX','USD'));
+  ALTER TABLE orders ADD COLUMN currency TEXT NOT NULL DEFAULT 'ROBUX' CHECK (currency IN ('ROBUX','USD'));
+  ALTER TABLE transactions ADD COLUMN currency TEXT NOT NULL DEFAULT 'ROBUX' CHECK (currency IN ('ROBUX','USD'));
+  ALTER TABLE payment_requests ADD COLUMN currency TEXT NOT NULL DEFAULT 'ROBUX' CHECK (currency IN ('ROBUX','USD'));
+  ALTER TABLE payment_requests ADD COLUMN provider TEXT;
+  ALTER TABLE payment_requests ADD COLUMN provider_ref TEXT;
+  CREATE UNIQUE INDEX payment_provider_ref_key ON payment_requests (provider, provider_ref) WHERE provider_ref IS NOT NULL;
+  ALTER TABLE messages ADD COLUMN flagged INTEGER NOT NULL DEFAULT 0;
+
+  ALTER TABLE creators ADD COLUMN verification_code TEXT;
+  ALTER TABLE creators ADD COLUMN review_flags TEXT;
+  ALTER TABLE creators ADD COLUMN youtube_channel_id TEXT;
+  ALTER TABLE creators ADD COLUMN youtube_title TEXT;
+  ALTER TABLE creators ADD COLUMN youtube_thumb TEXT;
+  ALTER TABLE creators ADD COLUMN youtube_verified_at BIGINT;
+  ALTER TABLE creators ADD COLUMN youtube_subs INTEGER;
+  ALTER TABLE creators ADD COLUMN youtube_total_views BIGINT;
+  ALTER TABLE creators ADD COLUMN youtube_video_count INTEGER;
+  ALTER TABLE creators ADD COLUMN youtube_avg_views INTEGER;
+  ALTER TABLE creators ADD COLUMN youtube_synced_at BIGINT;
+  ALTER TABLE creators ADD COLUMN tiktok_handle TEXT;
+  ALTER TABLE creators ADD COLUMN tiktok_title TEXT;
+  ALTER TABLE creators ADD COLUMN tiktok_verified_at BIGINT;
+  ALTER TABLE creators ADD COLUMN tiktok_followers INTEGER;
+  ALTER TABLE creators ADD COLUMN tiktok_likes BIGINT;
+  ALTER TABLE creators ADD COLUMN tiktok_video_count INTEGER;
+  ALTER TABLE creators ADD COLUMN tiktok_avg_views INTEGER;
+  ALTER TABLE creators ADD COLUMN tiktok_synced_at BIGINT;
+  CREATE UNIQUE INDEX creators_yt_channel_key ON creators (youtube_channel_id) WHERE youtube_channel_id IS NOT NULL;
+  CREATE UNIQUE INDEX creators_tt_handle_key ON creators (lower(tiktok_handle)) WHERE tiktok_handle IS NOT NULL;
+
+  CREATE TABLE email_verifications (
+    token_hash TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    expires_at BIGINT NOT NULL,
+    used_at BIGINT
+  );
+
+  CREATE TABLE reports (
+    id TEXT PRIMARY KEY,
+    reporter_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    target_type TEXT NOT NULL CHECK (target_type IN ('creator','order','user')),
+    target_id TEXT NOT NULL,
+    reason TEXT NOT NULL,
+    details TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','resolved','dismissed')),
+    resolution TEXT,
+    resolved_by TEXT REFERENCES users(id),
+    created_at BIGINT NOT NULL,
+    resolved_at BIGINT
+  );
+  CREATE INDEX idx_reports_status ON reports(status, created_at);
+
+  ALTER TABLE email_verifications ENABLE ROW LEVEL SECURITY;
+  ALTER TABLE reports ENABLE ROW LEVEL SECURITY;
+  `,
 ];

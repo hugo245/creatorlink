@@ -13,11 +13,11 @@ export default function Terms() {
       <h2>2. Accounts</h2>
       <p>You must be at least 13 years old, and if you are under the age of majority you confirm a parent or guardian permits your use. You are responsible for your account and for keeping your password secure. One person, one account.</p>
       <h2>3. Orders and payment</h2>
-      <p>Prices are in Robux and set by creators. When you place an order the price is held in escrow and released to the creator on approval, auto-approval or a dispute decision in their favour. Creators pay a service fee of {config.feeBps / 100}% on completed orders. Fees are shown before you order or withdraw.</p>
+      <p>Prices are set by creators in Robux or US dollars. When you place an order the price is held in escrow and released to the creator on approval, auto-approval or a dispute decision in their favour. Creators pay a service fee of {config.feeBps / 100}% on completed orders. Fees are shown before you order or withdraw.</p>
       <h2>4. Deposits and withdrawals</h2>
-      <p>Deposits and withdrawals are processed through Roblox gamepasses and are confirmed manually. They are subject to Roblox’s own terms, including its marketplace fees. Balances are a record of Robux held on your behalf and are not a bank account, e-money or interest-bearing.</p>
+      <p>US dollar deposits are charged by card through Stripe, and a card processing fee is shown before you pay. US dollar withdrawals are paid to a bank account you connect with Stripe, may be subject to a holding period after each sale (shown in your wallet) and can be paused while we investigate suspected fraud or a chargeback. Robux deposits and withdrawals are processed through Roblox gamepasses and are confirmed manually. They are subject to Roblox’s own terms, including its marketplace fees. Balances are a record of Robux held on your behalf and are not a bank account, e-money or interest-bearing.</p>
       <h2>5. Creator conduct</h2>
-      <p>Creators must report their audience honestly, deliver what the package describes, disclose paid promotion where required by law and platform rules, and not use bots or purchased views. We may suspend creators who break these rules.</p>
+      <p>Creators must own the channels they list and prove it by verification. Creators must not impersonate another person or channel, use misleading names, report their audience dishonestly, deliver what the package describes, disclose paid promotion where required by law and platform rules, and not use bots or purchased views. We may suspend creators who break these rules.</p>
       <h2>6. Prohibited use</h2>
       <p>No fraud, chargeback abuse, impersonation, harassment, illegal or age-inappropriate content, attempts to move transactions off-platform to avoid fees or protections, or attempts to disrupt the service.</p>
       <h2>7. Suspension</h2>

@@ -3,7 +3,8 @@
 import { redirect } from 'next/navigation';
 import { createHash, randomBytes } from 'node:crypto';
 import { config } from '@/lib/config';
-import { sendEmail } from '@/lib/email';
+import { emailConfigured, sendEmail } from '@/lib/email';
+import { assertEmailVerified, checkUsername, consumeEmailToken, createEmailToken, skeleton, usernameLookalike } from '@/lib/identity';
 import { createSession, destroySession, hashPassword, verifyPassword, requireUser, revokeSessions, currentTokenHash } from '@/lib/auth';
 import { get, run, now, uid } from '@/lib/db';
 import { loginSchema, passwordSchema, profileSchema, signupSchema, zodErrors } from '@/lib/validators';
@@ -19,24 +20,55 @@ function safeNext(n: string, fallback: string) {
   return n.startsWith('/') && !n.startsWith('//') && !n.startsWith('/\\') ? n : fallback;
 }
 
+async function sendVerification(userId: string, email: string) {
+  const token = await createEmailToken(userId);
+  await sendEmail(email, 'Verify your CreatorLink email', `Welcome to CreatorLink.\n\nConfirm your email address: ${config.appUrl}/verify-email/${token}\n\nThis link expires in 48 hours.`);
+}
+
 export async function signup(_: ActionState, fd: FormData): Promise<ActionState> {
   const raw = { username: str(fd, 'username'), email: str(fd, 'email'), password: str(fd, 'password'), intent: str(fd, 'intent') || 'developer' };
   const parsed = signupSchema.safeParse(raw);
   if (!parsed.success) return { fields: zodErrors(parsed.error), values: { username: raw.username, email: raw.email } };
   const { username, email, password, intent } = parsed.data;
 
+  const bad = checkUsername(username);
+  if (bad) return { fields: { username: bad }, values: { username, email } };
   if (!(await hit(`signup:${await clientIp()}`, 8, 60 * 60_000))) return { error: 'Too many sign-ups from this network. Try again later.' };
   if (await get('SELECT 1 AS x FROM users WHERE lower(email) = lower(?)', email)) return { fields: { email: 'An account with this email already exists.' }, values: { username, email } };
-  if (await get('SELECT 1 AS x FROM users WHERE lower(username) = lower(?)', username)) return { fields: { username: 'That username is taken.' }, values: { username, email } };
+  if ((await get('SELECT 1 AS x FROM users WHERE lower(username) = lower(?)', username)) || (await usernameLookalike(username))) {
+    return { fields: { username: 'That username is taken or too similar to an existing one.' }, values: { username, email } };
+  }
 
   const id = uid();
   const isFirst = !(await get('SELECT 1 AS x FROM users LIMIT 1'));
-  await run(
-    'INSERT INTO users (id, email, username, password_hash, role, created_at) VALUES (?,?,?,?,?,?)',
-    id, email, username, await hashPassword(password), isFirst && process.env.FIRST_USER_IS_ADMIN === 'true' ? 'admin' : 'user', now(),
-  );
+  // Without an email provider (local development) there is nobody to send a link, so verify immediately.
+  const autoVerify = !emailConfigured && !config.isProd;
+  try {
+    await run(
+      'INSERT INTO users (id, email, username, username_skeleton, password_hash, role, email_verified_at, created_at) VALUES (?,?,?,?,?,?,?,?)',
+      id, email, username, skeleton(username), await hashPassword(password), isFirst && process.env.FIRST_USER_IS_ADMIN === 'true' ? 'admin' : 'user', autoVerify ? now() : null, now(),
+    );
+  } catch (e) {
+    if ((e as { code?: string }).code === '23505') return { fields: { username: 'That username or email is already taken.' }, values: { username, email } };
+    throw e;
+  }
+  if (!autoVerify) await sendVerification(id, email);
   await createSession(id);
   redirect(intent === 'creator' ? '/app/creator' : '/app');
+}
+
+export async function resendVerification(): Promise<ActionState> {
+  const user = await requireUser();
+  if (user.email_verified_at) return { ok: true, message: 'Your email is already verified.' };
+  if (!(await hit(`verify-resend:${user.id}`, 3, 60 * 60_000))) return { error: 'Please wait a bit before requesting another email.' };
+  if (!emailConfigured && config.isProd) return { error: 'Email sending isn’t configured on this server. Contact support.' };
+  await sendVerification(user.id, user.email);
+  return { ok: true, message: 'Verification email sent. Check your inbox.' };
+}
+
+export async function verifyEmail(token: string): Promise<ActionState> {
+  if (!(await hit(`verify-email:${await clientIp()}`, 20, 60 * 60_000))) return { error: 'Too many attempts. Try again later.' };
+  return (await consumeEmailToken(token)) ? { ok: true, message: 'Email verified.' } : { error: 'This link is invalid or has expired. Request a new one from your dashboard.' };
 }
 
 export async function login(_: ActionState, fd: FormData): Promise<ActionState> {

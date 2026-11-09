@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Avatar } from '@/components/avatar';
-import { Robux, StatusBadge } from '@/components/ui';
+import { Money, StatusBadge } from '@/components/ui';
 import { timeAgo } from '@/lib/format';
 import type { OrderRow } from '@/lib/queries';
 
@@ -27,7 +27,7 @@ export function OrderList({ orders, userId }: { orders: OrderRow[]; userId: stri
                 {o.last_message && <p className="mt-1 hidden truncate text-[13px] text-ink-4 sm:block">“{o.last_message}”</p>}
               </div>
               <div className="text-right">
-                <Robux n={selling ? o.price - o.fee : o.price} className="font-display text-lg font-bold" />
+                <Money n={selling ? o.price - o.fee : o.price} c={o.currency} className="font-display text-lg font-bold" />
                 <p className="text-xs text-ink-3">{selling ? 'you earn' : 'escrow'}</p>
               </div>
             </Link>

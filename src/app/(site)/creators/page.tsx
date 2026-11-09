@@ -15,17 +15,18 @@ const SORTS: [NonNullable<Filters['sort']>, string][] = [
   ['popular', 'Most popular'], ['rating', 'Top rated'], ['audience', 'Biggest audience'],
   ['price_asc', 'Price: low to high'], ['price_desc', 'Price: high to low'], ['newest', 'Newest'],
 ];
-const PRICES = [500, 1500, 3000, 6000, 10000];
+const PRICES = [10, 25, 50, 100, 250]; // USD equivalent
 
 export default async function Browse({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const sp = await searchParams;
   const sort = SORTS.some(([k]) => k === sp.sort) ? (sp.sort as Filters['sort']) : 'popular';
   const platform = sp.platform === 'youtube' || sp.platform === 'tiktok' ? sp.platform : undefined;
   const niche = NICHES.find((n) => n === sp.niche);
-  const maxPrice = PRICES.includes(Number(sp.max)) ? Number(sp.max) : undefined;
+  const maxUsd = PRICES.includes(Number(sp.max)) ? Number(sp.max) : undefined;
+  const currency = sp.currency === 'USD' || sp.currency === 'ROBUX' ? sp.currency : undefined;
   const page = Math.max(1, parseInt(sp.page ?? '1', 10) || 1);
-  const { creators, total, pages } = await listCreators({ q: sp.q?.slice(0, 60), platform, niche, maxPrice, sort, page, perPage: 12 });
-  const filtered = !!(sp.q || platform || niche || maxPrice);
+  const { creators, total, pages } = await listCreators({ q: sp.q?.slice(0, 60), platform, niche, currency, maxUsd, sort, page, perPage: 12 });
+  const filtered = !!(sp.q || platform || niche || maxUsd || currency);
 
   const pageHref = (p: number) => {
     const qs = new URLSearchParams(Object.entries(sp).filter(([, v]) => v) as [string, string][]);
@@ -38,13 +39,13 @@ export default async function Browse({ searchParams }: { searchParams: Promise<R
       <section className="border-b border-line bg-paper-2/60">
         <div className="container-x py-12 sm:py-16">
           <h1 className="font-display text-4xl font-bold tracking-tight sm:text-5xl">Browse creators</h1>
-          <p className="mt-3 max-w-xl text-ink-2">Every creator is reviewed by hand. Prices are fixed and your Robux stays in escrow until you approve the work.</p>
+          <p className="mt-3 max-w-xl text-ink-2">Every creator’s channel ownership is verified and their numbers come straight from the platform. Prices are fixed and your money stays in escrow until you approve the work.</p>
         </div>
       </section>
 
       <div className="container-x py-8">
         <FilterForm>
-          <div className="grid gap-3 md:grid-cols-[1.6fr_repeat(4,1fr)]">
+          <div className="grid gap-3 md:grid-cols-[1.6fr_repeat(5,1fr)]">
             <div className="relative">
               <Search size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-3" aria-hidden />
               <input type="search" name="q" defaultValue={sp.q} placeholder="Search by name or genre" aria-label="Search creators" className="field pl-10" />
@@ -55,8 +56,11 @@ export default async function Browse({ searchParams }: { searchParams: Promise<R
             <select name="niche" defaultValue={niche ?? ''} aria-label="Genre" className="field">
               <option value="">Any genre</option>{NICHES.map((n) => <option key={n}>{n}</option>)}
             </select>
-            <select name="max" defaultValue={maxPrice ?? ''} aria-label="Budget" className="field">
-              <option value="">Any budget</option>{PRICES.map((p) => <option key={p} value={p}>Under R$ {p.toLocaleString('en-US')}</option>)}
+            <select name="currency" defaultValue={currency ?? ''} aria-label="Currency" className="field">
+              <option value="">Robux or USD</option><option value="ROBUX">Priced in Robux</option><option value="USD">Priced in USD</option>
+            </select>
+            <select name="max" defaultValue={maxUsd ?? ''} aria-label="Budget" className="field">
+              <option value="">Any budget</option>{PRICES.map((p) => <option key={p} value={p}>Under ${p} value</option>)}
             </select>
             <select name="sort" defaultValue={sort} aria-label="Sort" className="field">
               {SORTS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}

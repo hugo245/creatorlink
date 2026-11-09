@@ -28,11 +28,11 @@ export function orderDetail(id: string) {
 
 export type Msg = {
   id: string; sender_id: string | null; sender_name: string | null; sender_avatar: string | null;
-  kind: 'user' | 'system'; body: string; file_path: string | null; file_name: string | null; file_type: string | null; created_at: number;
+  kind: 'user' | 'system'; flagged: number; body: string; file_path: string | null; file_name: string | null; file_type: string | null; created_at: number;
 };
 export function orderMessages(orderId: string) {
   return all<Msg>(
-    `SELECT m.id, m.sender_id, u.username AS sender_name, u.avatar AS sender_avatar, m.kind, m.body, m.file_path, m.file_name, m.file_type, m.created_at
+    `SELECT m.id, m.sender_id, u.username AS sender_name, u.avatar AS sender_avatar, m.kind, m.flagged, m.body, m.file_path, m.file_name, m.file_type, m.created_at
        FROM messages m LEFT JOIN users u ON u.id = m.sender_id WHERE m.order_id = ? ORDER BY m.created_at, m.id`,
     orderId,
   );

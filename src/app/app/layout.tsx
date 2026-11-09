@@ -5,7 +5,8 @@ import { all, get } from '@/lib/db';
 import { sweepOrders } from '@/lib/orders';
 import { Logo } from '@/components/logo';
 import { Avatar } from '@/components/avatar';
-import { Robux } from '@/components/ui';
+import { DualMoney } from '@/components/ui';
+import { VerifyBanner } from '@/components/app/verify-banner';
 import { NotificationBell, type Notif } from '@/components/app/notification-bell';
 import { SideNav, TabBar, type NavItem } from '@/components/app/nav';
 import { logout } from '@/app/actions/auth';
@@ -51,12 +52,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <div className="lg:hidden"><Logo href="/app" markOnlyMobile /></div>
           <div className="hidden lg:block" />
           <div className="flex items-center gap-2">
-            <Link href="/app/wallet" className="btn btn-outline btn-sm" title="Wallet balance"><Wallet2 /> <Robux n={user.balance} /></Link>
+            <Link href="/app/wallet" className="btn btn-outline btn-sm" title="Wallet balance"><Wallet2 /> <DualMoney robux={user.balance} usd={user.balance_usd} /></Link>
             <NotificationBell items={notifs} unread={unread} />
             <form action={logout} className="lg:hidden"><button className="btn btn-ghost h-10 w-10 px-0" aria-label="Log out"><LogOut size={18} /></button></form>
           </div>
         </header>
-        <main className="mx-auto w-full max-w-[1080px] px-5 py-8 sm:px-8 sm:py-10">{children}</main>
+        <main className="mx-auto w-full max-w-[1080px] px-5 py-8 sm:px-8 sm:py-10">
+          {!user.email_verified_at && <VerifyBanner email={user.email} />}
+          {children}
+        </main>
       </div>
       <TabBar items={tabs} />
     </div>
