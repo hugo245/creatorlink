@@ -8,9 +8,7 @@ A marketplace where Roblox developers hire YouTube and TikTok creators for fixed
 
 ```bash
 npm install
-cp .env.example .env.local      # set ENABLE_TEST_FUNDS=true for instant fake funds in dev
-npm run seed                    # fictional demo creators, orders and accounts (dev only)
-npm run dev                     # http://localhost:3000
+npm run local                   # creates .env.local, seeds demo data, starts http://localhost:3000
 ```
 
 Demo logins (password `demo1234`): `dev@creatorlink.local` (developer), `kai.plays@creatorlink.local` (creator), `admin@creatorlink.local` (admin).

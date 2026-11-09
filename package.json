@@ -11,6 +11,7 @@
     "build": "next build",
     "start": "next start",
     "seed": "tsx scripts/seed.mts",
+    "local": "node scripts/local.mjs",
     "make-admin": "tsx scripts/make-admin.mts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
