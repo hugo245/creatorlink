@@ -20,7 +20,7 @@ export function Chat({ orderId, userId, initial, canSend }: { orderId: string; u
     try {
       const r = await fetch(`/api/orders/${orderId}/messages`, { cache: 'no-store' });
       if (r.ok) setMsgs((await r.json()).messages);
-    } catch { /* offline — try again next tick */ }
+    } catch { /* offline, try again next tick */ }
   }, [orderId]);
 
   useEffect(() => {

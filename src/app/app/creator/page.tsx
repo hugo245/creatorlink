@@ -42,7 +42,7 @@ export default async function CreatorPage() {
           {c && (
             <section className="card p-6 sm:p-8">
               <h2 className="font-display text-xl font-bold">Packages</h2>
-              <p className="mt-1 text-sm text-ink-3">Fixed-price offers. Developers order these directly — you receive the price minus the platform fee.</p>
+              <p className="mt-1 text-sm text-ink-3">Fixed-price offers. Developers order these directly. You receive the price minus the platform fee.</p>
               <PackagesEditor feeBps={config.feeBps} packages={pkgs.map((p) => ({ id: p.id, title: p.title, description: p.description, price: p.price, deliveryDays: p.delivery_days, revisions: p.revisions }))} />
             </section>
           )}

@@ -15,7 +15,7 @@ if (process.argv.includes('--reset')) {
   }
 }
 if (get('SELECT 1 FROM users LIMIT 1')) {
-  console.log('Database already has users — skipping seed (use --reset to wipe).');
+  console.log('Database already has users, skipping seed (use --reset to wipe).');
   process.exit(0);
 }
 
@@ -42,7 +42,7 @@ const CREATORS: Seed[] = [
     bio: 'I make short, loud, high-retention Roblox clips for a mostly 10–16 audience. I play your game properly before filming, hook in the first second, and always put your game name on screen. Past work includes simulators and obbies.',
     packages: [['60s gameplay short', 'One TikTok, hook-first edit, game name + link in the caption.', 1200, 3, 1], ['3-video series', 'Three shorts over one week with different hooks.', 3000, 7, 2]] },
   { name: 'Mara Quest', platform: 'youtube', followers: 186_000, views: 62_000, headline: 'Long-form first-look videos for RPGs and story games.', niches: ['RPG', 'Story', 'Anime'],
-    bio: 'Ten-minute honest first-impressions, with chapters and a pinned link to your game. I’ll tell my audience what’s good and what’s rough — viewers trust that. Best for games with depth.',
+    bio: 'Ten-minute honest first-impressions, with chapters and a pinned link to your game. I’ll tell my audience what’s good and what’s rough. Viewers trust that. Best for games with depth.',
     packages: [['First-look video (8–12 min)', 'Honest playthrough with pinned link and description credit.', 4500, 7, 1], ['Dedicated review + Short', 'Full video plus a vertical Short cut.', 6500, 10, 1]] },
   { name: 'Voltage', platform: 'both', followers: 940_000, views: 410_000, headline: 'Big-channel promos for tycoons and simulators. Booked weeks ahead.', niches: ['Tycoon', 'Simulator', 'Sandbox'],
     bio: 'Roughly a million followers across both platforms. I accept a limited number of promotions per month and only for games I’d play myself. Cross-posted to YouTube and TikTok.',
@@ -51,12 +51,12 @@ const CREATORS: Seed[] = [
     bio: 'Horror is all I do. Moody edits, good audio, decent jump-scare timing. If your game is scary, my audience will find it.',
     packages: [['Horror playthrough', '10-minute edited playthrough with link in the description.', 2200, 5, 1]] },
   { name: 'Pixel Pip', platform: 'tiktok', followers: 58_000, views: 34_000, headline: 'Cheap, quick shorts for new and small games.', niches: ['Obby', 'Racing', 'Sandbox'],
-    bio: 'Newer creator with unusually high view-to-follower ratio. I offer low prices to build my history — fast turnaround and I’ll re-cut if you ask.',
+    bio: 'Newer creator with unusually high view-to-follower ratio. I offer low prices to build my history. Fast turnaround and I’ll re-cut if you ask.',
     packages: [['Quick short', 'One 30–45s TikTok.', 300, 2, 1], ['Short + story', 'TikTok plus 3 story posts.', 650, 3, 1]] },
   { name: 'Ember Arcade', platform: 'youtube', followers: 255_000, views: 95_000, headline: 'Tower defense and strategy videos with real analysis.', niches: ['Tower Defense', 'Fighting'],
     bio: 'Strategy-minded audience that stays to the end. I’ll test your balance, show off progression and give honest feedback in the video.',
     packages: [['Strategy showcase', 'Full video with progression and tips.', 5200, 8, 1]] },
-  { name: 'Roleplay Rae', platform: 'both', followers: 129_000, views: 48_000, headline: 'Roleplay and social games — I bring my community in.', niches: ['Roleplay', 'Story'],
+  { name: 'Roleplay Rae', platform: 'both', followers: 129_000, views: 48_000, headline: 'Roleplay and social games. I bring my community in.', niches: ['Roleplay', 'Story'],
     bio: 'I run a small but very active Discord. I’ll host a play session with my community in your game and clip the best moments.',
     packages: [['Community session + clips', 'Live session, plus a YouTube highlight and a TikTok.', 4000, 9, 1]] },
   { name: 'Brickwave', platform: 'tiktok', followers: 301_000, views: 120_000, headline: 'Trend-driven shorts for anime and fighting games.', niches: ['Anime', 'Fighting', 'Shooter'],
@@ -64,7 +64,7 @@ const CREATORS: Seed[] = [
     packages: [['Trend short', 'One trend-based TikTok.', 1800, 3, 1], ['Two-short bundle', 'Two different trend formats.', 3200, 5, 1]] },
 ];
 
-const reviewText = ['Delivered on time and the video drove real joins. Would book again.', 'Great communication and a clean edit. Exactly what I briefed.', 'Solid. One small revision and it was perfect.', 'Good audience match for my game — a noticeable bump.'];
+const reviewText = ['Delivered on time and the video drove real joins. Would book again.', 'Great communication and a clean edit. Exactly what I briefed.', 'Solid. One small revision and it was perfect.', 'Good audience match for my game, a noticeable bump.'];
 
 CREATORS.forEach((c, idx) => {
   const uidc = user(c.name.toLowerCase().replace(/\s+/g, '_'), `${c.name.toLowerCase().replace(/\s+/g, '.')}@creatorlink.local`);
@@ -109,7 +109,7 @@ const kai = creators[0];
 const kaiPkg = get<{ id: string }>('SELECT id FROM packages WHERE creator_id = ? ORDER BY price LIMIT 1', kai.id)!;
 const live = createOrder({ buyerId: dev, packageId: kaiPkg.id, gameName: 'Race Clicker X', gameUrl: 'https://www.roblox.com/games/1234567/race-clicker-x', brief: 'Show the new rebirth system and the 2x speed pass in the first 5 seconds. Fast, loud, trending sound.' });
 acceptOrder(live, kai.user_id);
-deliverOrder(live, kai.user_id, 'https://tiktok.com/@kai-plays/video/demo', 'Used your trailer clip at the end — happy to re-cut the hook if you want it punchier.');
+deliverOrder(live, kai.user_id, 'https://tiktok.com/@kai-plays/video/demo', 'Used your trailer clip at the end. Happy to re-cut the hook if you want it punchier.');
 
 const mara = creators[1];
 const maraPkg = get<{ id: string }>('SELECT id FROM packages WHERE creator_id = ? ORDER BY price LIMIT 1', mara.id)!;

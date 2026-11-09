@@ -85,7 +85,7 @@ export async function saveProfile(_: ActionState, fd: FormData): Promise<ActionS
     const r = saveCreatorProfile(u.id, parsed.data);
     return {
       ok: true,
-      message: r.created ? 'Application submitted. We review every creator by hand — usually within a day.' : 'Profile saved.',
+      message: r.created ? 'Application submitted. We review every creator by hand, usually within a day.' : 'Profile saved.',
     };
   }, '/app/creator');
 }

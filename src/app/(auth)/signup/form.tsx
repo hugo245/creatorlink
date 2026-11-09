@@ -11,7 +11,7 @@ export function SignupForm({ intent: initial }: { intent: 'developer' | 'creator
   return (
     <>
       <h1 className="font-display text-4xl font-bold tracking-tight">Create your account</h1>
-      <p className="mt-2 text-ink-3">Free to join. You can do both — switch any time.</p>
+      <p className="mt-2 text-ink-3">Free to join. You can do both. Switch any time.</p>
       <ActionForm action={signup} className="mt-8 space-y-5">
         {(s) => (
           <>

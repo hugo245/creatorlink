@@ -14,7 +14,7 @@ export function Footer() {
         <div className="max-w-sm">
           <Logo />
           <p className="mt-4 text-sm leading-relaxed text-ink-3">
-            The marketplace where Roblox developers hire YouTube and TikTok creators — with every Robux protected by escrow until the work is approved.
+            The marketplace where Roblox developers hire YouTube and TikTok creators, with every Robux protected by escrow until the work is approved.
           </p>
         </div>
         {COLS.map((c) => (

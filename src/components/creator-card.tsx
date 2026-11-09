@@ -37,7 +37,7 @@ export function CreatorCard({ c }: { c: Creator }) {
         </div>
         <div className="text-right">
           <dt className="text-[11px] font-medium uppercase tracking-wide text-ink-3">From</dt>
-          <dd className="font-semibold">{c.min_price ? <Robux n={c.min_price} /> : '—'}</dd>
+          <dd className="font-semibold">{c.min_price ? <Robux n={c.min_price} /> : '-'}</dd>
         </div>
       </dl>
     </Link>

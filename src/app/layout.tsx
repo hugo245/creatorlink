@@ -4,10 +4,10 @@ import { config } from '@/lib/config';
 
 export const metadata: Metadata = {
   metadataBase: new URL(config.appUrl),
-  title: { default: 'CreatorLink — Hire Roblox creators. Pay when the video is live.', template: '%s · CreatorLink' },
+  title: { default: 'CreatorLink: Hire Roblox creators. Pay when the video is live.', template: '%s · CreatorLink' },
   description:
     'The marketplace where Roblox developers book YouTube and TikTok creators for fixed-price promotions. Robux stays in escrow until you approve the delivery.',
-  openGraph: { type: 'website', siteName: 'CreatorLink', title: 'CreatorLink — Hire Roblox creators', description: 'Fixed-price promos from vetted creators, protected by escrow.' },
+  openGraph: { type: 'website', siteName: 'CreatorLink', title: 'CreatorLink: Hire Roblox creators', description: 'Fixed-price promos from vetted creators, protected by escrow.' },
   twitter: { card: 'summary_large_image' },
   icons: { icon: '/icon.svg' },
 };

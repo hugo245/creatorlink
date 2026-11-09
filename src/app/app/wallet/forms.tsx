@@ -20,7 +20,7 @@ export function WalletForms({ testFunds, gamepass, minDeposit, minWithdrawal, ba
         <div className="grid gap-8 md:grid-cols-2">
           <div>
             <ol className="space-y-3 text-sm text-ink-2">
-              <li><span className="font-semibold text-ink">1.</span> Buy the CreatorLink deposit gamepass on Roblox{gamepass ? <> — <a href={gamepass} target="_blank" rel="noopener noreferrer" className="font-semibold underline">open gamepass</a></> : ' (link provided by support)'} for the amount you want to add.</li>
+              <li><span className="font-semibold text-ink">1.</span> Buy the CreatorLink deposit gamepass on Roblox{gamepass ? <>, <a href={gamepass} target="_blank" rel="noopener noreferrer" className="font-semibold underline">open gamepass</a></> : ' (link provided by support)'} for the amount you want to add.</li>
               <li><span className="font-semibold text-ink">2.</span> Submit the amount and your Roblox username as a reference.</li>
               <li><span className="font-semibold text-ink">3.</span> We confirm the purchase and credit your balance, usually within a day.</li>
             </ol>

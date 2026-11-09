@@ -24,7 +24,7 @@ export default function Safety() {
       <p>Either party can open a dispute on an order in production or delivered. Support reads the full conversation and the delivery, may ask for more information, and then releases the funds to the creator or refunds the buyer. Decisions are recorded on the order.</p>
       <h2>Staying safe</h2>
       <ul>
-        <li>Keep conversations and payments on CreatorLink — we can only protect orders we can see.</li>
+        <li>Keep conversations and payments on CreatorLink, because we can only protect orders we can see.</li>
         <li>Never share your Roblox password or .ROBLOSECURITY cookie with anyone. CreatorLink will never ask for it.</li>
         <li>Report suspicious behaviour to <a href={`mailto:${config.supportEmail}`}>{config.supportEmail}</a>.</li>
       </ul>

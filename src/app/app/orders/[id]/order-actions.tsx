@@ -113,7 +113,7 @@ export function OrderActions(p: ActionsProps) {
   if (status === 'active') {
     return (
       <div className="space-y-3">
-        {p.late && <ActionButton action={() => A.cancelOrder(id)} confirm="The deadline passed. Cancel and refund?" danger className="btn btn-danger">Deadline missed — cancel & refund</ActionButton>}
+        {p.late && <ActionButton action={() => A.cancelOrder(id)} confirm="The deadline passed. Cancel and refund?" danger className="btn btn-danger">Deadline missed: cancel & refund</ActionButton>}
         {dispute}
       </div>
     );

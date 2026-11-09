@@ -26,12 +26,10 @@ const config: Config = {
       keyframes: {
         rise: { from: { opacity: '0', transform: 'translateY(10px)' }, to: { opacity: '1', transform: 'none' } },
         fade: { from: { opacity: '0' }, to: { opacity: '1' } },
-        marquee: { from: { transform: 'translateX(0)' }, to: { transform: 'translateX(-50%)' } },
       },
       animation: {
         rise: 'rise .5s cubic-bezier(.2,.7,.2,1) both',
         fade: 'fade .25s ease both',
-        marquee: 'marquee 38s linear infinite',
       },
     },
   },

@@ -67,8 +67,8 @@ export default async function Overview() {
       </section>
 
       {!user.creator_id && (
-        <section className="grain mt-10 flex flex-wrap items-center justify-between gap-5 overflow-hidden rounded-2xl bg-ink p-7 text-paper">
-          <div><h2 className="font-display text-2xl font-bold">Got an audience? Get paid for it.</h2><p className="mt-1 text-paper/70">List your channel, set your prices, and receive pre-funded orders.</p></div>
+        <section className="mt-10 flex flex-wrap items-center justify-between gap-5 rounded-2xl bg-ink p-7 text-paper">
+          <div><h2 className="font-display text-2xl font-bold">Have an audience? Get paid for it.</h2><p className="mt-1 text-paper/70">List your channel, set your prices, and receive pre-funded orders.</p></div>
           <Link href="/app/creator" className="btn btn-signal">Become a creator</Link>
         </section>
       )}

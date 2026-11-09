@@ -1,6 +1,6 @@
 # CreatorLink
 
-A marketplace where Roblox developers hire YouTube and TikTok creators for fixed-price game promotions — with every Robux held in escrow until the work is approved.
+A marketplace where Roblox developers hire YouTube and TikTok creators for fixed-price game promotions, with every Robux held in escrow until the work is approved.
 
 **Stack:** Next.js 15 (App Router, server actions) · TypeScript · Tailwind · SQLite (Node's built-in `node:sqlite`, no native modules) · Zod · Vitest.
 
@@ -21,12 +21,12 @@ npm run build && npm start
 
 ## What's in it
 
-- **Marketplace** — search/filter/sort creators, public profiles with packages and verified reviews.
-- **Escrow orders** — place → creator accepts → delivers → buyer approves (or requests a revision / opens a dispute). Declined, expired (48h) and late orders refund automatically; stale deliveries auto-release after 72h.
-- **Wallet & ledger** — integer-Robux balance, append-only transaction ledger, deposits/withdrawals via Roblox gamepasses confirmed by an admin.
+- **Marketplace**: search/filter/sort creators, public profiles with packages and verified reviews.
+- **Escrow orders**: place → creator accepts → delivers → buyer approves (or requests a revision / opens a dispute). Declined, expired (48h) and late orders refund automatically; stale deliveries auto-release after 72h.
+- **Wallet & ledger**: integer-Robux balance, append-only transaction ledger, deposits/withdrawals via Roblox gamepasses confirmed by an admin.
 - **Order chat** with image/video attachments (magic-byte validated, served only to the two parties).
 - **Notifications**, creator applications + approval, reviews, settings.
-- **Admin** (`/admin`) — creator applications, dispute resolution, payment requests, user suspension and balance adjustments (all audit-logged).
+- **Admin** (`/admin`): creator applications, dispute resolution, payment requests, user suspension and balance adjustments (all audit-logged).
 
 ## Production
 
@@ -35,15 +35,15 @@ npm run build && npm start
    docker build -t creatorlink .
    docker run -p 3000:3000 -v creatorlink-data:/data -e APP_URL=https://yourdomain.com creatorlink
    ```
-   Put it behind HTTPS (cookies are `Secure` when `APP_URL` is `https://`). Run **one instance** — SQLite is single-writer.
+   Put it behind HTTPS (cookies are `Secure` when `APP_URL` is `https://`). Run **one instance**, since SQLite is single-writer.
 2. Create your admin: sign up, then `run `npm run make-admin -- you@example.com` against the same `DATA_DIR`` (or run once with `FIRST_USER_IS_ADMIN=true`).
 3. Set `DEPOSIT_GAMEPASS_URL`, `SUPPORT_EMAIL`, `PLATFORM_FEE_BPS`. Leave `ENABLE_TEST_FUNDS` **off**.
-4. Back up `/data` regularly (the SQLite file is in WAL mode — use `sqlite3 .backup` or a volume snapshot).
+4. Back up `/data` regularly (the SQLite file is in WAL mode, so use `sqlite3 .backup` or a volume snapshot).
 
-### Before you launch — things to decide
-- **Legal:** `/terms` and `/privacy` are sensible starting drafts, not legal advice. Have them reviewed — especially around holding user balances and minors (many Roblox users are under 18).
+### Before you launch, things to decide
+- **Legal:** `/terms` and `/privacy` are sensible starting drafts, not legal advice. Have them reviewed, especially around holding user balances and minors (many Roblox users are under 18).
 - **Deposits/withdrawals are manual** (admin confirms gamepass purchases). There is no Roblox API integration for payments; automate this once you have a verified payout flow.
-- **Email:** there is no transactional email yet (notifications are in-app). Password reset requires an email provider — the natural next feature.
+- **Email:** there is no transactional email yet (notifications are in-app). Password reset requires an email provider; this is the natural next feature.
 - **Scale:** to go multi-instance, swap `src/lib/db.ts` for Postgres; all queries are plain SQL in `src/lib`.
 
 ## Layout

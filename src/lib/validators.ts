@@ -53,7 +53,7 @@ export const orderSchema = z.object({
   packageId: z.string().min(1),
   gameName: text(2, 60, 'Game name'),
   gameUrl: gameUrlSchema,
-  brief: multiline(1500, 'Brief').pipe(z.string().min(20, 'Tell the creator a bit more — at least 20 characters.')),
+  brief: multiline(1500, 'Brief').pipe(z.string().min(20, 'Tell the creator a bit more, at least 20 characters.')),
 });
 
 export const deliverSchema = z.object({

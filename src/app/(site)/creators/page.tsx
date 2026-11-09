@@ -37,8 +37,7 @@ export default async function Browse({ searchParams }: { searchParams: Promise<R
     <Shell>
       <section className="border-b border-line bg-paper-2/60">
         <div className="container-x py-12 sm:py-16">
-          <p className="eyebrow">Marketplace</p>
-          <h1 className="mt-3 font-display text-4xl font-bold tracking-tight sm:text-5xl">Browse creators</h1>
+          <h1 className="font-display text-4xl font-bold tracking-tight sm:text-5xl">Browse creators</h1>
           <p className="mt-3 max-w-xl text-ink-2">Every creator is reviewed by hand. Prices are fixed and your Robux stays in escrow until you approve the work.</p>
         </div>
       </section>

@@ -66,7 +66,7 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
       {placed && (
         <p className="mt-6 flex items-start gap-2.5 rounded-xl bg-moss-soft px-4 py-3 text-sm text-moss" role="status">
           <Check size={17} className="mt-0.5 shrink-0" strokeWidth={3} />
-          Order placed and funds are held in escrow. {partner} has {plural(48, 'hour')} to accept — say hello in the conversation.
+          Order placed and funds are held in escrow. {partner} has {plural(48, 'hour')} to accept. Say hello in the conversation.
         </p>
       )}
 
@@ -90,7 +90,7 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
                 })}
               </ol>
             ) : (
-              <p className="text-sm font-medium text-ink-2">{o.status === 'disputed' ? 'This order is in dispute — funds stay locked until support decides.' : o.closed_reason ?? 'This order is closed.'}</p>
+              <p className="text-sm font-medium text-ink-2">{o.status === 'disputed' ? 'This order is in dispute. Funds stay locked until support decides.' : o.closed_reason ?? 'This order is closed.'}</p>
             )}
             {(due || hint) && (
               <p className={clsx('mt-4 flex items-center gap-2 text-sm', due?.overdue ? 'font-semibold text-signal-dark' : 'text-ink-3')}>
